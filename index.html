@@ -144,7 +144,6 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
     <input type="number" id="km" placeholder="Km percorsi (facoltativo)" inputmode="decimal" step="0.1" min="0" style="display:none">
     <button class="pri" id="add">Aggiungi attività</button>
   </div>
-  <div class="card"><div class="k" style="margin-bottom:8px">Elenco voci di spesa</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
   <div class="card" id="pcard">
     <div class="k" style="margin-bottom:8px">Aggiungi giornate di lavoro (singole o periodo)</div>
     <select id="pSel"></select>
@@ -238,6 +237,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 
 <button id="fab" aria-label="Aggiungi spesa o lavoro">+</button>
 
+<div class="card" id="catcard"><div class="k" style="margin-bottom:8px">Elenco voci di spesa</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
 <div id="pvw" style="display:none"><div class="pvbar"><button id="pvclose">Chiudi</button><button class="pri" id="pvdl">Scarica PDF</button></div><div class="sheet" id="sheet"></div></div>
 <div id="st">Caricamento…</div>
 <div id="toast"></div>
@@ -310,6 +310,7 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
+  $('catcard').style.display=ov?'none':'';
   [0,1,2,3,4,5,6,7,8,9].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
   document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
