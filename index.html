@@ -13,6 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="Registro Lavori">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>#b8{display:none!important}</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>window.claude=window.claude||{use:function(){return Promise.resolve(null)}};if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});</script>
 <style>
 :root{--bg:#f6f5f1;--card:#fff;--tx:#1d1d1b;--mut:#6f6e68;--bd:#e3e1d8;--in:#1f7a4d;--out:#c0392b;--ac:#2b4c7e;--ac2:#fff;
@@ -252,9 +255,10 @@ var today=ymd(new Date()),month=today.slice(0,7);
 $('date').value=today;$('ps').value=today;$('pe').value=today;
 var tt;function status(t){$('st').textContent=t;if(/^(Salvato|Dati|Caricamento)/.test(t))return;var e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(function(){e.style.display='none'},3500)}
 function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps}}
+function TS(){var t=Date.now();try{localStorage.setItem('ledger_ts',String(t))}catch(e){}return t}
 function save(){
   try{localStorage.setItem('ledger2',JSON.stringify(snap()))}catch(e){}
-  if(ref){var er=function(e){status('Errore di salvataggio: '+((e&&e.message)||e))};try{ref.set({json:JSON.stringify(snap())}).then(function(){status('Salvato nel tuo spazio privato')}).catch(er)}catch(e){er(e)}}
+  if(ref){var er=function(e){status('Errore di salvataggio: '+((e&&e.message)||e))};try{ref.set({json:JSON.stringify(snap()),ts:TS()}).then(function(){status('Salvato nel tuo spazio privato')}).catch(er)}catch(e){er(e)}}
   else{try{localStorage.setItem('ledger2',JSON.stringify(snap()));status('Salvato solo su questo dispositivo')}catch(e){status('Impossibile salvare')}}
 }
 function kmv(e){if(e.kmo!=null)return e.k?e.kmo:0;var c=e.c?cl(e.c):null;return e.k&&c&&c.kmr?Math.round(e.k*c.kmr*100)/100:0}
@@ -868,17 +872,63 @@ $('rpdf').addEventListener('click',function(){NF=false},true);
 $('rSel').onchange=renderRecap;
 local();
 (async function(){
-  try{
-    var u=await claude.use('user'),db=await claude.use('db'),id=u?await u.id():null;
-    if(!db||!id){local();return}
-    ref=db.doc('data/users/'+id+'/ledger');
-    var s=await ref.get(),dt=s.exists?s.data():{};
-    var j=null;try{j=dt.json?JSON.parse(dt.json):null}catch(e){}
-    j=j||{entries:dt.entries,clients:dt.clients};
-    (j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)});
-    ready(j.entries||[],j.clients||[],'Dati salvati nel tuo spazio privato',j.cats);
-    if(entries.length!==(j.entries||[]).length||clients.length!==(j.clients||[]).length)save();
-  }catch(e){ref=null;local()}
+  var fb=window.firebase;
+  if(!fb||!fb.initializeApp){local();return}
+  var CFG={apiKey:"AIzaSyBlyT1Y64cUGMKXMk7NKMYy7RmB5hP98fI",authDomain:"registro-lavori.firebaseapp.com",projectId:"registro-lavori",storageBucket:"registro-lavori.firebasestorage.app",messagingSenderId:"617360169227",appId:"1:617360169227:web:c2e5a114a9855c4b55aa0e"};
+  local();
+  var auth,fs;
+  try{fb.initializeApp(CFG);auth=fb.auth();fs=fb.firestore();try{fs.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}}catch(e){return}
+  var unsub=null,skipped=false;
+  function lts(){return +(lsg('ledger_ts')||0)}
+  function applyRemote(j,ts){
+    entries=j.entries||[];clients=j.clients||[];if(j.cats&&j.cats.length)cats=j.cats;imps=j.imp||[];
+    lss('ledger_ts',String(ts));lss('ledger2',JSON.stringify(snap()));render();status('Dati aggiornati dall’altro dispositivo');
+  }
+  function sdoc(d){if(!d)return null;var j=null;try{j=d.json?JSON.parse(d.json):null}catch(e){}return j}
+  async function start(u){
+    ref=fs.doc('users/'+u.uid+'/data/ledger');
+    try{
+      var sn=await ref.get(),d=sn.exists?sn.data():null,j=sdoc(d);
+      if(!d||!j){if(entries.length||clients.length)save()}
+      else if(!lts()){(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)});ready(j.entries||[],j.clients||[],'Dati sincronizzati',j.cats);save()}
+      else if((d.ts||0)>lts())applyRemote(j,d.ts);
+      else if((d.ts||0)<lts())save();
+    }catch(e){}
+    if(unsub)unsub();
+    unsub=ref.onSnapshot(function(s2){
+      if(!s2.exists||s2.metadata.hasPendingWrites)return;
+      var d=s2.data(),j=sdoc(d);if(j&&(d.ts||0)>lts())applyRemote(j,d.ts);
+    },function(){});
+    renderAcc(u);
+  }
+  function renderAcc(u){
+    var c=$('accbox');if(!c){c=mk('div','card');c.id='accbox';$('s9').appendChild(c)}
+    c.textContent='';c.appendChild(mk('div','k','Sincronizzazione'));
+    c.appendChild(mk('div','hint',u?'Attiva con '+u.email+'. I dati si aggiornano tra i tuoi dispositivi.':'Non attiva: i dati restano solo su questo dispositivo.'));
+    var b=mk('button',u?'':'pri',u?'Esci dall’account':'Accedi');b.style.marginTop='8px';
+    b.onclick=function(){if(u){auth.signOut()}else showLogin()};c.appendChild(b);
+  }
+  function showLogin(){
+    var o=$('login');if(o){o.style.display='flex';return}
+    o=mk('div');o.id='login';o.style.cssText='position:fixed;inset:0;background:var(--bg,#0b0b0d);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px';
+    var f=mk('form','card');f.style.cssText='width:100%;max-width:360px';
+    var img=mk('img');img.src=LOGO_ND;img.alt='';img.style.cssText='width:64px;height:64px;display:block;margin:0 auto 12px';f.appendChild(img);
+    f.appendChild(mk('div','k','Accedi per sincronizzare i dati'));
+    var em=mk('input');em.type='email';em.placeholder='Email';em.autocomplete='username';em.required=true;
+    var pw=mk('input');pw.type='password';pw.placeholder='Password';pw.autocomplete='current-password';pw.required=true;
+    var er=mk('div','hint');er.style.color='#ff6b6b';
+    var bt=mk('button','pri','Accedi');bt.type='submit';
+    var sk=mk('button','','Continua senza accesso');sk.type='button';sk.style.marginTop='8px';
+    f.appendChild(em);f.appendChild(pw);f.appendChild(er);f.appendChild(bt);f.appendChild(sk);
+    f.onsubmit=function(ev){ev.preventDefault();er.textContent='';bt.disabled=true;
+      auth.signInWithEmailAndPassword(em.value.trim(),pw.value).then(function(){o.style.display='none'}).catch(function(e){er.textContent=(e&&e.code==='auth/network-request-failed')?'Nessuna connessione: riprova online.':'Email o password non corretti.'}).then(function(){bt.disabled=false})};
+    sk.onclick=function(){skipped=true;o.style.display='none';renderAcc(null)};
+    o.appendChild(f);document.body.appendChild(o);
+  }
+  auth.onAuthStateChanged(function(u){
+    if(u){var o=$('login');if(o)o.style.display='none';start(u)}
+    else{if(unsub){unsub();unsub=null}ref=null;renderAcc(null);if(!skipped)showLogin()}
+  });
 })();
 })();
 </script>
