@@ -304,7 +304,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 </section>
 
 <section id="s8" style="display:none">
-  <div class="card"><div class="row"><button class="pri" id="mailr">Aggiorna email</button></div><div class="row" style="margin-top:8px"><button id="mfA">Tutte</button><button id="mfC">Commercialista</button></div><div class="hint" id="mailh">Email di lavoro: promozioni, social e newsletter sono nascoste.</div></div>
+  <div class="card"><div class="row"><button class="pri" id="mailr">Aggiorna email</button></div><div class="row" style="margin-top:8px"><button id="mfA">Tutte</button><button id="mfC">Commerc.</button><button id="mfO">Altre</button></div><div class="hint" id="mailh">Email di lavoro: promozioni, social e newsletter sono nascoste.</div></div>
   <div id="mailL"></div>
 </section>
 
@@ -819,7 +819,7 @@ async function loadMail(){
     th.forEach(function(t){
       var m=(t.messages||[])[0]||{},from=mailAddr(m.sender);
       var isC=MAIL_FROM.indexOf(from)>=0;
-      if(!from||(mailF==='c'&&!isC)||(!isC&&MAIL_BAD.test(m.sender||'')))return;
+      if(!from||(mailF==='c'&&!isC)||(mailF==='o'&&isC)||(!isC&&MAIL_BAD.test(m.sender||'')))return;
       shown++;
       var card=mk('div','card'),top=mk('div','k',((m.addressDisplayNames&&m.addressDisplayNames[0]&&m.addressDisplayNames[0].displayName)||from)+(isC?' \u00b7 COMMERCIALISTA':''));
       if(isC)card.style.borderLeft='3px solid var(--ac,#3b82f6)';
@@ -873,7 +873,7 @@ async function loadMail(){
       
       card.appendChild(row);card.appendChild(box);L.appendChild(card);
     });
-    h.textContent=shown?shown+(mailF==='c'?' email del commercialista (ultimo anno)':' email di lavoro (ultimi 4 mesi)'):'Nessuna email trovata.';markSeen(th);
+    h.textContent=shown?shown+(mailF==='c'?' email del commercialista (ultimo anno)':mailF==='o'?' altre email (ultimi 4 mesi)':' email di lavoro (ultimi 4 mesi)'):'Nessuna email trovata.';markSeen(th);
     mailLoaded=true;
   }catch(e){
     var c=e&&e.code;
@@ -899,8 +899,8 @@ function mailWatch(){
 }
 setTimeout(mailWatch,4000);setInterval(mailWatch,300000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)mailWatch()});
-$('mfA').style.borderColor='var(--ac)';$('mfA').onclick=function(){mailF='a';$('mfA').style.borderColor='var(--ac)';$('mfC').style.borderColor='';$('mailr').onclick()};
-$('mfC').onclick=function(){mailF='c';$('mfC').style.borderColor='var(--ac)';$('mfA').style.borderColor='';$('mailr').onclick()};
+var MFB=['mfA','mfC','mfO'];function mfSet(k,id){mailF=k;MFB.forEach(function(x){$(x).style.borderColor=x===id?'var(--ac)':''});$('mailr').onclick()}
+$('mfA').style.borderColor='var(--ac)';$('mfO').onclick=function(){mfSet('o','mfO')};$('mfA').onclick=function(){mfSet('a','mfA')};$('mfC').onclick=function(){mfSet('c','mfC')};
 $('mailr').onclick=function(){mailLoaded=false;try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(x){}var gc=window.__gconnect;if(!gc){loadMail();return}
   gc().then(loadMail).catch(function(e){var c=e&&e.code;$('mailh').textContent=c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'?'Collegamento annullato. Premi Aggiorna email per riprovare.':c==='auth/unauthorized-domain'?'Dominio non autorizzato: in Firebase, Authentication, Impostazioni, Domini autorizzati, aggiungi nicodamiani20-hash.github.io.':c==='auth/popup-blocked'?'Il browser ha bloccato la finestra di Google: consenti i popup e riprova.':'Non riesco a collegare Gmail ('+(c||'errore')+').'})};
 var armed=null,usel='all';
