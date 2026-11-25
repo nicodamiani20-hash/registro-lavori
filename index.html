@@ -75,9 +75,12 @@ var MCP={callTool:async function(srv,tool,a){
   if(tool==='send_reply'){
     var enc=function(t){return /^[\x20-\x7e]*$/.test(t)?t:'=?UTF-8?B?'+u8b(t)+'?='};
     var sj=a.subject||'';if(!/^re:/i.test(sj))sj='Re: '+sj;
-    var bd=u8b(a.body).replace(/(.{76})/g,'$1\r\n');
+    var wr=function(t){return u8b(t).replace(/(.{76})/g,'$1\r\n')};
     var hs=['To: '+a.to,'Subject: '+enc(sj)];if(a.inReplyTo){hs.push('In-Reply-To: '+a.inReplyTo);hs.push('References: '+((a.references?a.references+' ':'')+a.inReplyTo))}
-    hs.push('MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',bd);var raw=hs.join('\r\n');
+    hs.push('MIME-Version: 1.0');
+    if(a.html){var bn='=_rl'+Date.now();hs.push('Content-Type: multipart/alternative; boundary="'+bn+'"','','--'+bn,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',wr(a.body),'--'+bn,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',wr(a.html),'--'+bn+'--')}
+    else hs.push('Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',wr(a.body));
+    var raw=hs.join('\r\n');
     var r2=await g('messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raw:u8b(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),threadId:a.threadId})});
     return {payload:r2};
   }
@@ -776,6 +779,24 @@ function saveMuted(){try{localStorage.setItem('mailmuted',JSON.stringify(muted))
 var MAIL_BAD=/(paypal|revolut|postepay|poste\.it|inbank|holafly|latuaspesa|123cuscinetto|apple\.com|sky\.it|myhumehealth|gov\.mt|bolt|amazon|google\.com|facebook|instagram|netflix|spotify|newsletter|noreply@(?!segnoverde)|no-reply|donotreply|unsubscribe)/i;
 function mailAddr(s){var m=/<([^>]+)>/.exec(s||'');return (m?m[1]:(s||'')).trim().toLowerCase()}
 var MAIL_FROM=['contabilita2@consulentiassociati.net','contabilita3@consulentiassociati.net','contabilita4@consulentiassociati.net'];
+var DITTA={n:'DAMIANI NICOLÒ',d:'Montaggio, programmazione luci, network per eventi',a:['Cascina Recolo, 6','25023 Gottolengo (BS)','Tel. +39 334 125 6779','nicodamiani20@gmail.com'],f:['P. IVA 04198740989','C.F. DMNNCL99S20E884X','REA BS - 596149','PEC pecdamiani@legalmail.it'],t:'Impresa artigiana individuale · Cascina Recolo 6, 25023 Gottolengo (BS)'};
+function hx(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function mailPack(tx,head){
+  var body='<div style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin:14px 0">'+hx(tx)+'</div>',pl=tx;
+  if(!head)return {html:'<div style="font-family:Arial,Helvetica,sans-serif;color:#111">'+body+'</div>',plain:pl};
+  var D=DITTA;
+  var h='<div style="font-family:Arial,Helvetica,sans-serif;color:#111"><div style="border-bottom:2px solid #2563eb;padding-bottom:8px"><b style="font-size:20px;letter-spacing:.5px">'+hx(D.n)+'</b><br><span style="font-size:12px;color:#555">'+hx(D.d)+'</span><div style="font-size:12px;color:#444;margin-top:6px;line-height:1.5">'+hx(D.a[0])+', '+hx(D.a[1])+'<br>'+hx(D.a[2])+' &nbsp;\u00b7&nbsp; '+hx(D.a[3])+'</div></div>'
+    +'<div style="font-size:11px;color:#555;margin-top:6px;line-height:1.5">'+D.f.map(hx).join(' &nbsp;\u00b7&nbsp; ')+'<br>'+hx(D.t)+'</div>'+body+'</div>';
+  return {html:h,plain:D.n+'\n'+D.d+'\n'+D.a.join('\n')+'\n'+D.f.join(' | ')+'\n'+D.t+'\n\n'+tx};
+}
+function mailPreview(to,sj,html,go){
+  var o=$('mpv');if(!o){o=mk('div');o.id='mpv';o.style.cssText='position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:14px';document.body.appendChild(o)}
+  o.textContent='';var bar=mk('div','pvbar'),ed=mk('button','','Modifica'),ok=mk('button','pri','Invia');bar.appendChild(ed);bar.appendChild(ok);o.appendChild(bar);
+  var sh=mk('div','sheet'),m=mk('div');m.style.cssText='font-size:12px;color:#555;border-bottom:1px solid #ddd;padding-bottom:8px;margin-bottom:12px';
+  m.appendChild(document.createTextNode('A: '+to));m.appendChild(document.createElement('br'));m.appendChild(document.createTextNode('Oggetto: '+sj));sh.appendChild(m);
+  var c=mk('div');c.innerHTML=html;sh.appendChild(c);o.appendChild(sh);o.style.display='block';
+  var close=function(){o.style.display='none'};ed.onclick=close;ok.onclick=function(){go(close,ok)};
+}
 var mailF='a';
 function qC(d){return 'newer_than:'+d+' ('+MAIL_FROM.map(function(x){return 'from:'+x}).join(' OR ')+')'}
 var FREE=/^(gmail|googlemail|hotmail|outlook|live|libero|virgilio|yahoo|icloud|me|tiscali|alice|tim|pec|msn)\./i;
@@ -856,19 +877,23 @@ async function loadMail(){
               ab.onclick=function(){getAtt(mm.id,z,ab)};w.appendChild(ab);
             });
             if(window.__gconnect){
-              var rb=mk('button','','Rispondi'),rbox=mk('div'),ta=document.createElement('textarea'),sb=mk('button','pri','Invia risposta');
+              var rb=mk('button','','Rispondi'),rbox=mk('div'),ta=document.createElement('textarea'),sb=mk('button','pri','Anteprima');
+              var hl=document.createElement('label');hl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px';var hc=document.createElement('input');hc.type='checkbox';hc.checked=true;hc.style.cssText='width:auto;margin:0';hl.appendChild(hc);hl.appendChild(document.createTextNode('Includi intestazione della ditta'));
               rb.style.cssText='display:block;margin-top:8px';rbox.style.cssText='display:none;margin-top:8px';ta.rows=6;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');sb.style.marginTop='8px';
-              rbox.appendChild(mk('div','hint','A: '+(mm.replyTo||mm.sender)));rbox.appendChild(ta);rbox.appendChild(sb);
+              rbox.appendChild(mk('div','hint','A: '+(mm.replyTo||mm.sender)));rbox.appendChild(ta);rbox.appendChild(hl);rbox.appendChild(sb);
               rb.onclick=function(){rbox.style.display=rbox.style.display==='none'?'':'none';if(rbox.style.display==='')ta.focus()};
-              sb.onclick=async function(){
+              sb.onclick=function(){
                 var tx=ta.value.trim();if(!tx){status('Scrivi un messaggio');return}
-                sb.disabled=true;sb.textContent='Invio…';
-                try{
-                  await window.__gconnect();var mc2=await claude.use('mcp');
-                  await mc2.callTool('Gmail','send_reply',{threadId:mm.threadId||t.id,to:mm.replyTo||mm.sender,subject:mm.subject,inReplyTo:mm.msgId,references:mm.refs,body:tx});
-                  ta.value='';rbox.style.display='none';status('Risposta inviata');
-                }catch(e){var c=e&&e.code;status(c==='needs_reauth'?'Serve il permesso di inviare: premi Aggiorna email e consenti':'Risposta non inviata ('+(c||'errore')+')')}
-                sb.disabled=false;sb.textContent='Invia risposta';
+                var pk=mailPack(tx,hc.checked),to=mm.replyTo||mm.sender,sj=/^re:/i.test(mm.subject||'')?mm.subject:'Re: '+(mm.subject||'');
+                mailPreview(to,sj,pk.html,async function(ok,bt){
+                  bt.disabled=true;bt.textContent='Invio…';
+                  try{
+                    await window.__gconnect();var mc2=await claude.use('mcp');
+                    await mc2.callTool('Gmail','send_reply',{threadId:mm.threadId||t.id,to:to,subject:mm.subject,inReplyTo:mm.msgId,references:mm.refs,body:pk.plain,html:pk.html});
+                    ta.value='';rbox.style.display='none';ok();status('Risposta inviata');
+                  }catch(e){var c=e&&e.code;status(c==='needs_reauth'?'Serve il permesso di inviare: premi Aggiorna email e consenti':'Risposta non inviata ('+(c||'errore')+')')}
+                  bt.disabled=false;bt.textContent='Invia';
+                });
               };
               w.appendChild(rb);w.appendChild(rbox);
             }
