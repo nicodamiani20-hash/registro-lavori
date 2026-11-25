@@ -304,7 +304,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 </section>
 
 <section id="s8" style="display:none">
-  <div class="card"><div class="row"><button class="pri" id="mailr">Aggiorna email</button></div><div class="hint" id="mailh">Mostra solo le email del commercialista (Consulenti Associati) dell\u2019ultimo anno.</div></div>
+  <div class="card"><div class="row"><button class="pri" id="mailr">Aggiorna email</button></div><div class="row" style="margin-top:8px"><button id="mfA">Tutte</button><button id="mfC">Commercialista</button></div><div class="hint" id="mailh">Email di lavoro: promozioni, social e newsletter sono nascoste.</div></div>
   <div id="mailL"></div>
 </section>
 
@@ -776,7 +776,9 @@ function saveMuted(){try{localStorage.setItem('mailmuted',JSON.stringify(muted))
 var MAIL_BAD=/(paypal|revolut|postepay|poste\.it|inbank|holafly|latuaspesa|123cuscinetto|apple\.com|sky\.it|myhumehealth|gov\.mt|bolt|amazon|google\.com|facebook|instagram|netflix|spotify|newsletter|noreply@(?!segnoverde)|no-reply|donotreply|unsubscribe)/i;
 function mailAddr(s){var m=/<([^>]+)>/.exec(s||'');return (m?m[1]:(s||'')).trim().toLowerCase()}
 var MAIL_FROM=['contabilita2@consulentiassociati.net','contabilita3@consulentiassociati.net','contabilita4@consulentiassociati.net'];
-function mailQuery(){return 'newer_than:365d ('+MAIL_FROM.map(function(x){return 'from:'+x}).join(' OR ')+')'}
+var mailF='a';
+function qC(d){return 'newer_than:'+d+' ('+MAIL_FROM.map(function(x){return 'from:'+x}).join(' OR ')+')'}
+function mailQuery(){return mailF==='c'?qC('365d'):'newer_than:120d in:inbox -category:promotions -category:social -category:updates -category:forums'}
 
 function diag(o,d){d=d||0;if(o===null||o===undefined)return String(o);if(typeof o==='string')return 'str('+o.length+'):'+o.slice(0,50).replace(/[^\x20-\x7e]/g,'?');if(typeof o!=='object')return typeof o;if(d>4)return '…';if(Array.isArray(o))return '['+o.slice(0,4).map(function(x){return diag(x,d+1)}).join(', ')+']';return '{'+Object.keys(o).slice(0,10).map(function(k){return k+':'+diag(o[k],d+1)}).join(', ')+'}'}
 function findB64(o,d){
@@ -816,9 +818,11 @@ async function loadMail(){
     var th=(pl&&pl.threads)||[],shown=0;
     th.forEach(function(t){
       var m=(t.messages||[])[0]||{},from=mailAddr(m.sender);
-      if(!from||MAIL_FROM.indexOf(from)<0)return;
+      var isC=MAIL_FROM.indexOf(from)>=0;
+      if(!from||(mailF==='c'&&!isC)||(!isC&&MAIL_BAD.test(m.sender||'')))return;
       shown++;
-      var card=mk('div','card'),top=mk('div','k',(m.addressDisplayNames&&m.addressDisplayNames[0]&&m.addressDisplayNames[0].displayName)||from);
+      var card=mk('div','card'),top=mk('div','k',((m.addressDisplayNames&&m.addressDisplayNames[0]&&m.addressDisplayNames[0].displayName)||from)+(isC?' \u00b7 COMMERCIALISTA':''));
+      if(isC)card.style.borderLeft='3px solid var(--ac,#3b82f6)';
       var sub=mk('b','',m.subject||'(senza oggetto)');sub.style.display='block';sub.style.margin='4px 0';
       card.appendChild(top);card.appendChild(sub);
       if(m.snippet){var sn=mk('div','hint');var tx=document.createElement('textarea');tx.innerHTML=m.snippet;sn.textContent=tx.value;card.appendChild(sn)}
@@ -869,7 +873,7 @@ async function loadMail(){
       
       card.appendChild(row);card.appendChild(box);L.appendChild(card);
     });
-    h.textContent=shown?shown+' email del commercialista (ultimo anno)':'Nessuna email del commercialista trovata.';
+    h.textContent=shown?shown+(mailF==='c'?' email del commercialista (ultimo anno)':' email di lavoro (ultimi 4 mesi)'):'Nessuna email trovata.';markSeen(th);
     mailLoaded=true;
   }catch(e){
     var c=e&&e.code;
@@ -877,7 +881,27 @@ async function loadMail(){
   }
   mailBusy=false;
 }
-$('mailr').onclick=function(){mailLoaded=false;var gc=window.__gconnect;if(!gc){loadMail();return}
+function seenGet(){try{return JSON.parse(localStorage.getItem('mailseen')||'null')}catch(x){return null}}
+function seenSet(a){try{localStorage.setItem('mailseen',JSON.stringify(a.slice(0,200)))}catch(x){}}
+function setBadge(n){var b=$('b8');if(!b)return;b.textContent='Email'+(n?' ('+n+')':'');b.style.color=n?'#ff6b6b':''}
+function markSeen(th){var ids=(th||[]).map(function(t){return t.id}),old=seenGet()||[];seenSet(ids.concat(old.filter(function(x){return ids.indexOf(x)<0})));setBadge(0)}
+function mailWatch(){
+  if(!window.__gconnect)return;
+  var ok=false;try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');ok=o&&o.exp>Date.now()}catch(x){}
+  if(!ok)return;
+  claude.use('mcp').then(function(mc){return mc.callTool('Gmail','search_threads',{query:qC('14d'),pageSize:10})}).then(function(r){
+    var ids=((r.payload&&r.payload.threads)||[]).map(function(t){return t.id}),seen=seenGet();
+    if(seen===null){seenSet(ids);return}
+    var nw=ids.filter(function(x){return seen.indexOf(x)<0});
+    setBadge(nw.length);
+    if(nw.length&&tab!==8&&'Notification' in window&&Notification.permission==='granted'){try{new Notification('Nuova email dal commercialista',{body:nw.length+(nw.length===1?' nuovo messaggio':' nuovi messaggi')})}catch(x){}}
+  }).catch(function(){});
+}
+setTimeout(mailWatch,4000);setInterval(mailWatch,300000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)mailWatch()});
+$('mfA').style.borderColor='var(--ac)';$('mfA').onclick=function(){mailF='a';$('mfA').style.borderColor='var(--ac)';$('mfC').style.borderColor='';$('mailr').onclick()};
+$('mfC').onclick=function(){mailF='c';$('mfC').style.borderColor='var(--ac)';$('mfA').style.borderColor='';$('mailr').onclick()};
+$('mailr').onclick=function(){mailLoaded=false;try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission()}catch(x){}var gc=window.__gconnect;if(!gc){loadMail();return}
   gc().then(loadMail).catch(function(e){var c=e&&e.code;$('mailh').textContent=c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'?'Collegamento annullato. Premi Aggiorna email per riprovare.':c==='auth/unauthorized-domain'?'Dominio non autorizzato: in Firebase, Authentication, Impostazioni, Domini autorizzati, aggiungi nicodamiani20-hash.github.io.':c==='auth/popup-blocked'?'Il browser ha bloccato la finestra di Google: consenti i popup e riprova.':'Non riesco a collegare Gmail ('+(c||'errore')+').'})};
 var armed=null,usel='all';
 function renderUnpaid(){
