@@ -657,12 +657,58 @@ function f24Store(mm,z,pgs,due){
   var n=f24addSpese(rec,true);
   save();render();return {rec:rec,isNew:true,n:n};
 }
+
+function f24Seen(){try{return JSON.parse(localStorage.getItem('f24seen')||'[]')}catch(e){return []}}
+function f24SeenAdd(k){var a=f24Seen();if(a.indexOf(k)<0){a.push(k);try{localStorage.setItem('f24seen',JSON.stringify(a.slice(-300)))}catch(e){}}}
+function gTokOk(){try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');return !!(o&&o.exp>Date.now())}catch(e){return false}}
+async function f24Scan(manual){
+  if(window.__f24busy||!window.__gconnect)return;
+  window.__f24busy=true;if(manual)renderF24();
+  var found=0,tot=0,fails=0;
+  try{
+    if(!gTokOk()){if(!manual)return;await window.__gconnect()}
+    var mc=await claude.use('mcp');
+    var res=await mc.callTool('Gmail','search_threads',{query:qC('150d')+' has:attachment',pageSize:15});
+    var th=(res.payload&&res.payload.threads)||[],work=0;
+    for(var i=0;i<th.length&&work<3;i++){
+      var tr=await mc.callTool('Gmail','get_thread',{threadId:th[i].id,messageFormat:'PLAIN_TEXT'}),ms=(tr.payload&&tr.payload.messages)||[];
+      for(var j=0;j<ms.length&&work<3;j++){
+        var mm=ms[j],zs=(mm.attachments||[]).filter(function(z){return /pdf/i.test((z.mimeType||'')+(z.filename||''))});
+        for(var q=0;q<zs.length&&work<3;q++){
+          var z=zs[q],key=mm.id+'_'+String(z.id).slice(-12);
+          if(f24s.some(function(r){return r.id===key})||f24Seen().indexOf(key)>=0)continue;
+          var ctx=(mm.subject||'')+' '+(z.filename||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,400);
+          if(!/f24|inps|inail|bollo|scad|acconto|saldo|imposta/i.test(ctx)){f24SeenAdd(key);continue}
+          work++;
+          var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
+          try{
+            status('Leggo l’F24 del commercialista…');
+            var pgs=await f24Read(mm.id,z,function(x){status(x)}),st=f24Store(mm,z,pgs,due);
+            if(st&&st.isNew){found++;tot+=f24Tot(st.rec)}else f24SeenAdd(key);
+          }catch(e){if(e&&e.code==='libs'){fails=1;throw e}f24SeenAdd(key)}
+        }
+      }
+    }
+  }catch(e){
+    var c=e&&e.code;if(manual)status(c==='libs'?'Non riesco a caricare il lettore: controlla la connessione':c==='needs_reauth'?'Gmail non collegato: riprova e consenti':'Controllo non riuscito ('+(c||(e&&e.message)||'errore')+')');
+  }
+  window.__f24busy=false;window.__f24last=new Date();
+  if(found){status(found===1?'Nuovo F24 letto: '+eur.format(tot):found+' nuovi F24 letti: '+eur.format(tot));
+    if(tab!==11&&'Notification' in window&&Notification.permission==='granted'){try{new Notification('Nuovo F24 dal commercialista',{body:'Totale '+eur.format(tot)+' · aperto in F24'})}catch(x){}}
+  }else if(manual&&!fails&&gTokOk())status('Nessun nuovo F24');
+  renderF24();
+}
 function renderF24(){
   var V=$('f24v');if(!V)return;V.textContent='';
   var list=f24s.slice().sort(function(a,b){return (a.paid-b.paid)||(a.paid?b.due.localeCompare(a.due):a.due.localeCompare(b.due))});
   var un=list.filter(function(r){return !r.paid}),ut=un.reduce(function(a,r){return a+f24Tot(r)},0);
   var top=mk('div','card');top.appendChild(mk('div','k','Da pagare'));var tv=mk('div','v',eur.format(ut));top.appendChild(tv);
-  top.appendChild(mk('div','hint',un.length?un.length+(un.length===1?' F24 non pagato':' F24 non pagati'):'Tutti gli F24 sono pagati'));V.appendChild(top);
+  top.appendChild(mk('div','hint',un.length?un.length+(un.length===1?' F24 non pagato':' F24 non pagati'):'Tutti gli F24 sono pagati'));
+  if(window.__gconnect){
+    var ck=mk('button','pri',window.__f24busy?'Controllo in corso\u2026':(gTokOk()?'Controlla nuovi F24':'Collega Gmail e controlla nuovi F24'));ck.style.marginTop='10px';ck.disabled=!!window.__f24busy;ck.onclick=function(){if('Notification' in window&&Notification.permission==='default'){try{Notification.requestPermission()}catch(e){}}f24Scan(true)};top.appendChild(ck);
+    top.appendChild(mk('div','hint',gTokOk()?'Gli F24 nuovi del commercialista vengono letti da soli ogni 5 minuti, finch\u00e9 l\u2019app \u00e8 aperta e Gmail resta collegato (circa un\u2019ora).'+(window.__f24last?' Ultimo controllo: '+window.__f24last.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):''):'La lettura automatica parte appena Gmail \u00e8 collegato.'));
+  }
+  V.appendChild(top);
   if(!list.length){var e0=mk('div','card');e0.appendChild(mk('div','hint','Nessun F24 ancora. Apri una email del commercialista nella scheda Email e premi “Leggi scadenza e importi”: gli importi arrivano qui e nelle spese (Tasse).'));V.appendChild(e0)}
   list.forEach(function(rec){
     var c=mk('div','card'),hd=mk('div','row');hd.style.cssText='align-items:center;gap:10px';
@@ -1143,6 +1189,7 @@ function mailWatch(){
     setBadge(nw.length);
     if(nw.length&&tab!==8&&'Notification' in window&&Notification.permission==='granted'){try{new Notification('Nuova email dal commercialista',{body:nw.length+(nw.length===1?' nuovo messaggio':' nuovi messaggi')})}catch(x){}}
   }).catch(function(){});
+  f24Scan(false);
 }
 setTimeout(mailWatch,4000);setInterval(mailWatch,300000);
 document.addEventListener('visibilitychange',function(){if(!document.hidden)mailWatch()});
