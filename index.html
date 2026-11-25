@@ -12,13 +12,70 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Registro Lavori">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<style>#b8{display:none!important}body.pal main{padding-top:12px}body.pal .brand{margin:6px 0 6px;padding-bottom:8px}body.pal .brand h1{font-size:26px;line-height:1.15}body.pal .tabs{padding-top:2px;padding-bottom:2px;margin-bottom:12px}body.pal .tabs button{padding:8px 12px}body.calv main{padding-top:12px}
+<style>body.pal main{padding-top:12px}body.pal .brand{margin:6px 0 6px;padding-bottom:8px}body.pal .brand h1{font-size:26px;line-height:1.15}body.pal .tabs{padding-top:2px;padding-bottom:2px;margin-bottom:12px}body.pal .tabs button{padding:8px 12px}body.calv main{padding-top:12px}
 body.pal .brand{position:relative}#refbtn{position:absolute;right:0;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:20px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #refbtn{right:6px}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>window.claude=window.claude||{use:function(){return Promise.resolve(null)}};if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});</script>
+<script>(function(){
+var SC='https://www.googleapis.com/auth/gmail.readonly',B='https://gmail.googleapis.com/gmail/v1/users/me/';
+function tok(){try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');if(o&&o.exp>Date.now())return o.t}catch(e){}return null}
+window.__gconnect=function(){
+  if(tok())return Promise.resolve();
+  var a=window.__gauth;if(!a||!a.currentUser)return Promise.reject({code:'nologin'});
+  var p=new firebase.auth.GoogleAuthProvider();p.addScope(SC);p.setCustomParameters({login_hint:a.currentUser.email||''});
+  var u=a.currentUser,linked=u.providerData.some(function(x){return x.providerId==='google.com'});
+  var pr=linked?u.reauthenticateWithPopup(p):u.linkWithPopup(p).catch(function(e){if(e&&e.code==='auth/provider-already-linked')return u.reauthenticateWithPopup(p);throw e});
+  return pr.then(function(r){var t=r&&r.credential&&r.credential.accessToken;if(!t)throw {code:'notoken'};try{sessionStorage.setItem('gtok',JSON.stringify({t:t,exp:Date.now()+3300000}))}catch(e){}});
+};
+async function g(path){
+  var t=tok();if(!t)throw {code:'needs_reauth'};
+  var r=await fetch(B+path,{headers:{Authorization:'Bearer '+t}});
+  if(r.status===401||r.status===403){try{sessionStorage.removeItem('gtok')}catch(e){}throw {code:'needs_reauth'}}
+  if(!r.ok)throw {code:'http_'+r.status};
+  return r.json();
+}
+function hd(m,n){var h=((m.payload||{}).headers||[]).filter(function(x){return x.name.toLowerCase()===n})[0];return h?h.value:''}
+function dec(b){b=(b||'').replace(/-/g,'+').replace(/_/g,'/');var bin=atob(b),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder('utf-8').decode(u)}
+function body(pt,kind){
+  if(!pt)return '';
+  if(pt.mimeType===kind&&pt.body&&pt.body.data)return dec(pt.body.data);
+  var o='';(pt.parts||[]).forEach(function(x){if(!o)o=body(x,kind)});return o;
+}
+function atts(pt,out){
+  if(!pt)return out;
+  if(pt.filename&&pt.body&&pt.body.attachmentId)out.push({id:pt.body.attachmentId,filename:pt.filename,mimeType:pt.mimeType});
+  (pt.parts||[]).forEach(function(x){atts(x,out)});return out;
+}
+function nm(f){var m=/^\s*"?([^"<]*?)"?\s*</.exec(f||'');return m&&m[1]?m[1].trim():''}
+var MCP={callTool:async function(srv,tool,a){
+  if(tool==='search_threads'){
+    var l=await g('threads?q='+encodeURIComponent(a.query||'')+'&maxResults='+(a.pageSize||50));
+    var th=await Promise.all((l.threads||[]).map(async function(t){
+      var d=await g('threads/'+t.id+'?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date');
+      var m=(d.messages||[])[0]||{},f=hd(m,'from');
+      return {id:t.id,messages:[{sender:f,subject:hd(m,'subject'),snippet:m.snippet||'',date:new Date(+m.internalDate||0).toISOString(),addressDisplayNames:[{displayName:nm(f)}]}]};
+    }));
+    return {payload:{threads:th}};
+  }
+  if(tool==='get_thread'){
+    var d=await g('threads/'+a.threadId+'?format=full');
+    return {payload:{messages:(d.messages||[]).map(function(m){
+      var t=body(m.payload,'text/plain')||body(m.payload,'text/html').replace(/<style[\s\S]*?<\/style>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+\n/g,'\n');
+      return {id:m.id,sender:hd(m,'from'),date:new Date(+m.internalDate||0).toISOString(),plaintextBody:t,snippet:m.snippet||'',attachments:atts(m.payload,[])};
+    })}};
+  }
+  if(tool==='download_gmail_attachment'){
+    var r=await g('messages/'+a.messageId+'/attachments/'+a.attachmentId);
+    var b=(r.data||'').replace(/-/g,'+').replace(/_/g,'/');
+    return {content:'data:application/octet-stream;base64,'+b,payload:null};
+  }
+  throw {code:'tool_error'};
+}};
+var DL={save:async function(o){var a=document.createElement('a');a.href=URL.createObjectURL(o.data);a.download=o.filename;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}};
+window.claude=window.claude||{use:function(n){return Promise.resolve(n==='mcp'?MCP:n==='downloads'?DL:null)}};
+})();if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});</script>
 <style>
 :root{--bg:#f6f5f1;--card:#fff;--tx:#1d1d1b;--mut:#6f6e68;--bd:#e3e1d8;--in:#1f7a4d;--out:#c0392b;--ac:#2b4c7e;--ac2:#fff;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -789,11 +846,12 @@ async function loadMail(){
     mailLoaded=true;
   }catch(e){
     var c=e&&e.code;
-    h.textContent=c==='server_not_connected'||c==='needs_reauth'?'Collega o ricollega Gmail in claude.ai, Impostazioni, Connettori.':c==='not_in_manifest'||c==='approval_required'||c==='consent_required'?'Serve il permesso di leggere Gmail: premi Aggiorna email e consenti.':'Non riesco a leggere le email ora. Riprova tra poco.';
+    h.textContent=c==='server_not_connected'||c==='needs_reauth'?'Premi Aggiorna email per collegare Gmail con il tuo account Google.':c==='not_in_manifest'||c==='approval_required'||c==='consent_required'?'Serve il permesso di leggere Gmail: premi Aggiorna email e consenti.':'Non riesco a leggere le email ora. Riprova tra poco.';
   }
   mailBusy=false;
 }
-$('mailr').onclick=function(){mailLoaded=false;loadMail()};
+$('mailr').onclick=function(){mailLoaded=false;var gc=window.__gconnect;if(!gc){loadMail();return}
+  gc().then(loadMail).catch(function(e){var c=e&&e.code;$('mailh').textContent=c==='auth/popup-closed-by-user'||c==='auth/cancelled-popup-request'?'Collegamento annullato. Premi Aggiorna email per riprovare.':c==='auth/unauthorized-domain'?'Dominio non autorizzato: in Firebase, Authentication, Impostazioni, Domini autorizzati, aggiungi nicodamiani20-hash.github.io.':c==='auth/popup-blocked'?'Il browser ha bloccato la finestra di Google: consenti i popup e riprova.':'Non riesco a collegare Gmail ('+(c||'errore')+').'})};
 var armed=null,usel='all';
 function renderUnpaid(){
   var U=$('unp');U.textContent='';
@@ -941,7 +999,7 @@ local();
   var CFG={apiKey:"AIzaSyBlyT1Y64cUGMKXMk7NKMYy7RmB5hP98fI",authDomain:"registro-lavori.firebaseapp.com",projectId:"registro-lavori",storageBucket:"registro-lavori.firebasestorage.app",messagingSenderId:"617360169227",appId:"1:617360169227:web:c2e5a114a9855c4b55aa0e"};
   local();
   var auth,fs;
-  try{fb.initializeApp(CFG);auth=fb.auth();fs=fb.firestore();try{fs.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}}catch(e){return}
+  try{fb.initializeApp(CFG);auth=fb.auth();window.__gauth=auth;fs=fb.firestore();try{fs.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}}catch(e){return}
   var unsub=null,skipped=false;
   function lts(){return +(lsg('ledger_ts')||0)}
   function applyRemote(j,ts){
