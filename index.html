@@ -784,11 +784,12 @@ function hx(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 function mailPack(tx,head){
   var body='<div style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin:0 0 14px">'+hx(tx)+'</div>',pl=tx;
   if(!head)return {html:'<div style="font-family:Arial,Helvetica,sans-serif;color:#111">'+body+'</div>',plain:pl};
-  var D=DITTA,CL='La ringrazio per l’attenzione e porgo cordiali saluti.',NM='Nicolò Damiani';
-  var h='<div style="font-family:Arial,Helvetica,sans-serif;color:#111">'+body+'<div style="font-size:14px;line-height:1.5">'+hx(CL)+'<br><br>'+hx(NM)+'</div>'
+  var D=DITTA,CL='Cordiali saluti,',NM='Nicolò Damiani',GR=(new Date().getHours()<14?'Buongiorno':'Buonasera')+',';
+  body='<div style="font-size:14px;line-height:1.5;margin:0 0 10px">'+GR+'</div>'+body;
+  var h='<div style="font-family:Arial,Helvetica,sans-serif;color:#111">'+body+'<div style="font-size:14px;line-height:1.5">'+hx(CL)+'<br>'+hx(NM)+'</div>'
     +'<div style="border-top:2px solid #2563eb;margin-top:14px;padding-top:8px"><b style="font-size:18px;letter-spacing:.5px">'+hx(D.n)+'</b><br><span style="font-size:12px;color:#555">'+hx(D.d)+'</span><div style="font-size:12px;color:#444;margin-top:6px;line-height:1.5">'+hx(D.a[0])+', '+hx(D.a[1])+'<br>'+hx(D.a[2])+' &nbsp;·&nbsp; '+hx(D.a[3])+'</div>'
     +'<div style="font-size:11px;color:#555;margin-top:6px;line-height:1.5">'+D.f.map(hx).join(' &nbsp;·&nbsp; ')+'<br>'+hx(D.t)+'</div></div></div>';
-  return {html:h,plain:tx+'\n\n'+CL+'\n\n'+NM+'\n\n--\n'+D.n+'\n'+D.d+'\n'+D.a.join('\n')+'\n'+D.f.join(' | ')+'\n'+D.t};
+  return {html:h,plain:GR+'\n\n'+tx+'\n\n'+CL+'\n'+NM+'\n\n--\n'+D.n+'\n'+D.d+'\n'+D.a.join('\n')+'\n'+D.f.join(' | ')+'\n'+D.t};
 }
 function mailPreview(to,sj,html,go){
   var o=$('mpv');if(!o){o=mk('div');o.id='mpv';o.style.cssText='position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:14px';document.body.appendChild(o)}
@@ -879,7 +880,7 @@ async function loadMail(){
             });
             if(window.__gconnect){
               var rb=mk('button','','Rispondi'),rbox=mk('div'),ta=document.createElement('textarea'),sb=mk('button','pri','Anteprima');
-              var hl=document.createElement('label');hl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px';var hc=document.createElement('input');hc.type='checkbox';hc.checked=true;hc.style.cssText='width:auto;margin:0';hl.appendChild(hc);hl.appendChild(document.createTextNode('Includi saluti e intestazione della ditta in fondo'));
+              var hl=document.createElement('label');hl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px;font-size:14px';var hc=document.createElement('input');hc.type='checkbox';hc.checked=true;hc.style.cssText='width:auto;margin:0';hl.appendChild(hc);hl.appendChild(document.createTextNode('Includi saluto, saluti finali e intestazione'));
               rb.style.cssText='display:block;margin-top:8px';rbox.style.cssText='display:none;margin-top:8px';ta.rows=6;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');sb.style.marginTop='8px';
               rbox.appendChild(mk('div','hint','A: '+(mm.replyTo||mm.sender)));rbox.appendChild(ta);rbox.appendChild(hl);rbox.appendChild(sb);
               rb.onclick=function(){rbox.style.display=rbox.style.display==='none'?'':'none';if(rbox.style.display==='')ta.focus()};
