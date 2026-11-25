@@ -891,6 +891,87 @@ async function getAtt(mid,z,btn){
   btn.disabled=false;btn.textContent=old;
 }
 
+
+var F24NAMES={'1790':'Imposta sostitutiva forfettari · 1° acconto','1791':'Imposta sostitutiva forfettari · 2° acconto','1792':'Imposta sostitutiva forfettari · saldo','2521':'Bollo fatture elettroniche · I trimestre','2522':'Bollo fatture elettroniche · II trimestre','2523':'Bollo fatture elettroniche · III trimestre','2524':'Bollo fatture elettroniche · IV trimestre'};
+function f24Amt(t){t=String(t).replace(/[^\d.,]/g,'');if(/,\d{1,2}$/.test(t))return parseFloat(t.replace(/\./g,'').replace(',','.'));var d=t.replace(/[.,]/g,'');return d?parseInt(d,10)/100:NaN}
+function f24Parse(txt){
+  var rows=[],saldo=null,L=String(txt||'').split('\n'),m;
+  L.forEach(function(l){
+    if(m=/\b(\d{4})\s+([A-Z]{2})\s+(\d{12,20})\s+(\d{2})(\d{4})\s+(\d{2})(\d{4})\s+(\d[\d.]*(?:,\d{2})?)/.exec(l)){
+      rows.push({sez:'INPS',cod:m[1],cau:m[2],per:m[4]+'/'+m[5]+' - '+m[6]+'/'+m[7],imp:f24Amt(m[8])});
+    }else if(m=/\b(\d{4})\W{0,2}\s+(?:\S{1,3}\s+\S{1,3}\s+)?((?:19|20)\d{2})\s+(\d[\d.]*(?:,\d{1,2})?)(?!\d)/.exec(l)){
+      rows.push({sez:'Erario',cod:m[1],anno:m[2],imp:f24Amt(m[3])});
+    }
+  });
+  var i=txt.search(/SALDO\s+FINALE/i),part=i>=0?txt.slice(i):txt;
+  if(m=/EURO[^\d]{0,8}(\d[\d.]*(?:,\d{2})?)/i.exec(part))saldo=f24Amt(m[1]);
+  return {rows:rows,saldo:saldo};
+}
+function f24Desc(r){
+  if(r.sez==='INPS')return r.cau==='AP'?'INPS artigiani · contributi':'INPS · contributi ('+r.cau+')';
+  return F24NAMES[r.cod]||('Codice tributo '+r.cod);
+}
+function mailDue(txt,dstr){
+  var t=String(txt||''),m=/(?:scad(?:enza|\.)?|entro(?:\s+il)?|da\s+pagare(?:\s+il)?)\s*(?:il\s+)?(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?/i.exec(t);
+  if(!m)return null;
+  var d=+m[1],mo=+m[2],y=m[3]?+m[3]:null;if(y!==null&&y<100)y+=2000;
+  var base=dstr?new Date(dstr):new Date();if(isNaN(base))base=new Date();
+  if(y===null){y=base.getFullYear();if(new Date(y,mo-1,d,23,59)<new Date(base.getTime()-86400000))y++}
+  if(mo<1||mo>12||d<1||d>31)return null;
+  return y+'-'+('0'+mo).slice(-2)+'-'+('0'+d).slice(-2);
+}
+function dueLine(iso){
+  var dd=new Date(iso+'T12:00:00'),n=Math.round((new Date(iso+'T12:00:00')-new Date(new Date().toDateString()+' 12:00'))/86400000);
+  var tx='Scadenza: '+dd.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})+(n===0?' (oggi)':n===1?' (domani)':n>1?' (tra '+n+' giorni)':n===-1?' (scaduta ieri)':' (scaduta da '+(-n)+' giorni)');
+  return {text:tx,urgent:n<=7};
+}
+function loadScr(src){return new Promise(function(res,rej){var x=document.createElement('script');x.src=src;x.onload=res;x.onerror=function(){rej({code:'libs'})};document.head.appendChild(x)})}
+async function f24Read(mid,z,onProg){
+  var ck='f24_'+mid+'_'+String(z.id).slice(-24),c=null;try{c=JSON.parse(localStorage.getItem(ck)||'null')}catch(e){}
+  if(c)return c;
+  var mc=await claude.use('mcp');
+  var rs=await mc.callTool('Gmail','download_gmail_attachment',{messageId:mid,attachmentId:z.id,filename:z.filename||'allegato',mimeType:z.mimeType||'application/pdf'});
+  var b64=findB64(rs.content,0);if(!b64)throw {code:'nofile'};
+  var bin=atob(b64.replace(/^.*base64,/,'').replace(/\s/g,'')),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  onProg('Carico il lettore PDF…');
+  if(!window.pdfjsLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  if(!window.Tesseract)await loadScr('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  var pdf=await pdfjsLib.getDocument({data:u}).promise;
+  onProg('Preparo il riconoscimento del testo…');
+  var wk=await Tesseract.createWorker('eng');
+  try{await wk.setParameters({tessedit_pageseg_mode:'4'})}catch(e){}
+  var pages=[];
+  try{
+    for(var n=1;n<=Math.min(pdf.numPages,8);n++){
+      onProg('Leggo pagina '+n+' di '+Math.min(pdf.numPages,8)+'…');
+      var pg=await pdf.getPage(n),vp=pg.getViewport({scale:2.8}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+      await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+      var r=await wk.recognize(cv);pages.push(f24Parse(r.data.text));cv.width=cv.height=0;
+    }
+  }finally{try{await wk.terminate()}catch(e){}}
+  try{localStorage.setItem(ck,JSON.stringify(pages))}catch(e){}
+  return pages;
+}
+function f24Show(pages,due,box){
+  box.textContent='';
+  var ok=pages.filter(function(p){return p.rows.length||p.saldo!==null});
+  if(due){var dl=dueLine(due),d=mk('div','',dl.text);d.style.cssText='font-weight:700;margin-bottom:6px;color:'+(dl.urgent?'#ff6b6b':'inherit');box.appendChild(d)}
+  if(!ok.length){box.appendChild(mk('div','hint','Non ho riconosciuto un modello F24 in questo PDF.'));return}
+  var tot=0,allok=true;
+  ok.forEach(function(p,ix){
+    var hd=mk('div','k','Modello F24'+(ok.length>1?' '+(ix+1):''));hd.style.marginTop='8px';box.appendChild(hd);
+    var sum=0;
+    p.rows.forEach(function(r){
+      var d=mk('div','',r.cod+(r.cau?' '+r.cau:'')+' · '+f24Desc(r)+(r.anno?' · anno '+r.anno:'')+(r.per?' · '+r.per:'')+' · '+eur.format(r.imp));d.style.margin='3px 0';box.appendChild(d);sum+=r.imp||0;
+    });
+    var sd=p.saldo!==null?p.saldo:sum,good=p.saldo===null?false:Math.abs(sum-p.saldo)<0.011&&p.rows.length>0;
+    if(!good)allok=false;tot+=sd;
+    var s2=mk('div','',(p.saldo!==null?'Saldo finale: ':'Somma delle voci: ')+eur.format(sd)+(good?' ✓':' ⚠ da controllare'));s2.style.cssText='font-weight:700;margin-top:4px';box.appendChild(s2);
+  });
+  if(ok.length>1){var t=mk('div','',(allok?'':'Circa ')+'Totale da pagare: '+eur.format(tot));t.style.cssText='font-weight:700;margin-top:8px';box.appendChild(t)}
+  box.appendChild(mk('div','hint',allok?'Le voci lette coincidono con il saldo finale.':'Lettura automatica: alcune cifre potrebbero non essere esatte. Controlla sempre il PDF prima di pagare.'));
+}
 async function loadMail(){
   if(mailBusy)return;mailBusy=true;
   var L=$('mailL'),h=$('mailh');L.textContent='';h.textContent='Carico le email…';
@@ -909,6 +990,7 @@ async function loadMail(){
       if(isC)card.style.borderLeft='3px solid var(--ac,#3b82f6)';
       var sub=mk('b','',m.subject||'(senza oggetto)');sub.style.display='block';sub.style.margin='4px 0';
       card.appendChild(top);card.appendChild(sub);
+      if(isC){var dz=mailDue((m.subject||'')+' '+(m.snippet||''),m.date||t.date);if(dz){var dl0=dueLine(dz),dv=mk('div','',dl0.text);dv.style.cssText='font-weight:700;margin:2px 0 4px;color:'+(dl0.urgent?'#ff6b6b':'inherit');card.appendChild(dv)}}
       if(m.snippet){var sn=mk('div','hint');var tx=document.createElement('textarea');tx.innerHTML=m.snippet;sn.textContent=tx.value;card.appendChild(sn)}
       var row=mk('div','row');row.style.marginTop='8px';
       if(m.date||t.date){var dt=mk('b','',new Date(m.date||t.date).toLocaleString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}));dt.style.cssText='font-size:13px;margin-right:auto';row.appendChild(dt)}
@@ -928,6 +1010,16 @@ async function loadMail(){
             (mm.attachments||[]).forEach(function(z){
               var ab=mk('button','','Allegato: '+(z.filename||z.name||'file'));ab.style.cssText='display:block;margin-top:8px;text-align:left';
               ab.onclick=function(){getAtt(mm.id,z,ab)};w.appendChild(ab);
+              if(isC&&window.__gconnect&&/pdf/i.test((z.mimeType||'')+(z.filename||''))){
+                var fb=mk('button','pri','Leggi scadenza e importi'),fr=mk('div');fb.style.cssText='display:block;margin-top:6px';fr.style.marginTop='6px';
+                fb.onclick=async function(){
+                  fb.disabled=true;var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
+                  try{await window.__gconnect();var pgs=await f24Read(mm.id,z,function(x){fb.textContent=x});f24Show(pgs,due,fr);fb.textContent='Rileggi'}
+                  catch(e){var c=e&&e.code;fr.textContent='';fr.appendChild(mk('div','hint',c==='libs'?'Non riesco a caricare il lettore: controlla la connessione.':c==='needs_reauth'?'Premi Aggiorna email per ricollegare Gmail.':'Lettura non riuscita ('+(c||(e&&e.message)||'errore')+').'));fb.textContent='Leggi scadenza e importi'}
+                  fb.disabled=false;
+                };
+                w.appendChild(fb);w.appendChild(fr);
+              }
             });
             if(window.__gconnect){
               var rb=mk('button','','Rispondi'),rbox=mk('div'),ta=document.createElement('textarea'),sb=mk('button','pri','Anteprima');
