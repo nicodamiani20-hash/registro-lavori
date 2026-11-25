@@ -636,6 +636,7 @@ $('rsend').onclick=function(){if(!window.__gconnect){status('Disponibile solo ne
 if(!window.__gconnect)$('rsend').parentNode.style.display='none';
 
 function f24Ok(m){var t=m.rows.reduce(function(a,r){return a+(+r.imp||0)},0);return m.saldo!==null&&m.rows.length>0&&Math.abs(t-m.saldo)<0.011}
+function f24Sig(r){return r.mods.map(function(m){return m.rows.map(function(x){return x.cod+'|'+(x.anno||x.per)+'|'+(+x.imp).toFixed(2)}).sort().join(',')}).sort().join(';')}
 function f24Tot(r){return r.mods.reduce(function(a,m){return a+(m.saldo!==null?m.saldo:m.rows.reduce(function(b,x){return b+(+x.imp||0)},0))},0)}
 function f24addSpese(rec,onlyOk){
   if(cats.indexOf('Tasse')<0)cats.push('Tasse');
@@ -643,6 +644,7 @@ function f24addSpese(rec,onlyOk){
   rec.mods.forEach(function(m,mi){if(m.added||(onlyOk&&!f24Ok(m)))return;m.added=true;m.rows.forEach(function(r,ri){
     var src=rec.id+'#'+mi+'.'+ri;if(entries.some(function(e){return e.src===src}))return;
     var amt=Math.round((+r.imp||0)*100)/100;if(!(amt>0))return;
+    if(entries.some(function(e){return e.t==='spesa'&&e.cat==='Tasse'&&!e.src&&Math.abs(e.a-amt)<0.005&&Math.abs((new Date(e.d+'T12:00:00')-new Date(rec.due+'T12:00:00'))/86400000)<=45})){rec.sk=(rec.sk||0)+1;return}
     entries.push({id:Date.now()+n,t:'spesa',d:rec.due,n:'F24 · '+f24Desc(r)+(r.anno?' '+r.anno:'')+(r.per?' ('+r.per+')':''),a:amt,cat:'Tasse',src:src});n++;
   })});
   rec.added=rec.mods.every(function(m){return m.added});return n;
@@ -653,7 +655,10 @@ function f24Store(mm,z,pgs,due){
   var ok=pgs.filter(function(p){return p.rows.length||p.saldo!==null});if(!ok.length)return null;
   var md=String(mm.date||'').slice(0,10)||today;
   var rec={id:key,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:ok.map(function(p){return {rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}}),paid:false,pd:'',added:false};
-  rec.ok=rec.mods.every(f24Ok);f24s.push(rec);
+  rec.ok=rec.mods.every(f24Ok);
+  var sg=f24Sig(rec),dup=f24s.filter(function(x){return f24Sig(x)===sg||(x.due===rec.due&&Math.abs(f24Tot(x)-f24Tot(rec))<0.011)})[0];
+  if(dup)return {rec:dup,isNew:false,n:0,dup:true};
+  f24s.push(rec);
   var n=f24addSpese(rec,true);
   save();render();return {rec:rec,isNew:true,n:n};
 }
@@ -732,6 +737,7 @@ function renderF24(){
       var ok=f24Ok(m),sd=mk('div','',(m.saldo!==null?'Saldo finale: ':'Somma voci: ')+eur.format(m.saldo!==null?m.saldo:m.rows.reduce(function(a,x){return a+(+x.imp||0)},0))+(ok?' ✓':' ⚠ le voci non coincidono col saldo: correggi gli importi'));sd.style.cssText='font-weight:700;margin-top:4px';c.appendChild(sd);
     });
     if(rec.mods.length>1){var tt=mk('div','',(rec.mods.every(f24Ok)?'':'Circa ')+'Totale: '+eur.format(f24Tot(rec)));tt.style.cssText='font-weight:700;margin-top:6px';c.appendChild(tt)}
+    if(rec.sk)c.appendChild(mk('div','hint',rec.sk+(rec.sk===1?' voce era gi\u00e0 nelle spese (Tasse): non duplicata.':' voci erano gi\u00e0 nelle spese (Tasse): non duplicate.')));
     if(rec.added)c.appendChild(mk('div','hint','Segnato nelle spese, categoria Tasse, alla data della scadenza.'));
     else{var ab=mk('button','pri','Aggiungi alle spese (Tasse)');ab.style.marginTop='8px';ab.onclick=function(){var n=f24addSpese(rec);save();render();status(n+' spese aggiunte in Tasse')};c.appendChild(ab)}
     V.appendChild(c);
@@ -1122,7 +1128,7 @@ async function loadMail(){
                   fb.disabled=true;var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
                   try{await window.__gconnect();var pgs=await f24Read(mm.id,z,function(x){fb.textContent=x});f24Show(pgs,due,fr);fb.textContent='Rileggi';
                     var st=f24Store(mm,z,pgs,due);
-                    if(st){var nt=mk('div','hint',st.isNew?('Salvato nella pagina F24'+(st.rec.added?' e '+st.n+' spese segnate in Tasse.':(st.n?' e '+st.n+' spese segnate in Tasse; per il resto controlla le cifre in F24.':'. Controlla le cifre prima di aggiungerle alle spese.'))):'Gi\u00e0 presente nella pagina F24.');nt.style.marginTop='6px';fr.appendChild(nt);var go=mk('button','','Apri F24');go.style.marginTop='6px';go.onclick=function(){tab=11;render();window.scrollTo(0,0)};fr.appendChild(go)}}
+                    if(st){var nt=mk('div','hint',st.isNew?('Salvato nella pagina F24'+(st.rec.added?' e '+st.n+' spese segnate in Tasse.':(st.n?' e '+st.n+' spese segnate in Tasse; per il resto controlla le cifre in F24.':'. Controlla le cifre prima di aggiungerle alle spese.'))):(st.dup?'Questo F24 \u00e8 gi\u00e0 nell\u2019elenco (letto da un\u2019altra email): non l\u2019ho duplicato.':'Gi\u00e0 presente nella pagina F24.'));nt.style.marginTop='6px';fr.appendChild(nt);var go=mk('button','','Apri F24');go.style.marginTop='6px';go.onclick=function(){tab=11;render();window.scrollTo(0,0)};fr.appendChild(go)}}
                   catch(e){var c=e&&e.code;fr.textContent='';fr.appendChild(mk('div','hint',c==='libs'?'Non riesco a caricare il lettore: controlla la connessione.':c==='needs_reauth'?'Premi Aggiorna email per ricollegare Gmail.':'Lettura non riuscita ('+(c||(e&&e.message)||'errore')+').'));fb.textContent='Leggi scadenza e importi'}
                   fb.disabled=false;
                 };
