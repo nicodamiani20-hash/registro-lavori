@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Registro Lavori">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>#b8{display:none!important}body.pal main{padding-top:12px}body.pal .brand{margin:6px 0 6px;padding-bottom:8px}body.pal .brand h1{font-size:26px;line-height:1.15}body.pal .tabs{padding-top:2px;padding-bottom:2px;margin-bottom:12px}body.pal .tabs button{padding:8px 12px}body.calv main{padding-top:12px}
+body.pal .brand{position:relative}#refbtn{position:absolute;right:0;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:20px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #refbtn{right:6px}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -110,7 +111,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 </head>
 <body>
 <main>
-<div class="brand"><h1>Registro Lavori</h1></div>
+<div class="brand"><h1>Registro Lavori</h1><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button></div>
 <div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button></div>
 
 <div class="card" id="sumcard">
@@ -356,6 +357,12 @@ function addD(ds,n){var d=new Date(ds+'T12:00:00');d.setDate(d.getDate()+n);retu
 function fx(el){if(!el||el.nodeType!==1)return;var L=el.matches&&el.matches('input,textarea')?[el]:[];if(el.querySelectorAll)L=L.concat([].slice.call(el.querySelectorAll('input,textarea')));
 L.forEach(function(i){var t=(i.getAttribute('type')||'text').toLowerCase();if(t!=='text'&&t!=='search'&&i.tagName!=='TEXTAREA')return;i.setAttribute('spellcheck','true');i.setAttribute('autocorrect','on');i.setAttribute('autocapitalize','sentences');i.setAttribute('lang','it')})}
 fx(document.body);new MutationObserver(function(ms){ms.forEach(function(m){[].forEach.call(m.addedNodes,fx)})}).observe(document.body,{childList:true,subtree:true})}catch(e){}})();
+$('refbtn').onclick=async function(){
+  status('Aggiornamento in corso…');
+  try{if('caches' in window){var ks=await caches.keys();await Promise.all(ks.map(function(k){return caches.delete(k)}))}}catch(e){}
+  try{if(navigator.serviceWorker){var rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(function(r){return r.unregister()}))}}catch(e){}
+  location.reload();
+};
 function sameW(ds,c,n){return !!c&&entries.some(function(e){return e.t==='lavoro'&&e.d===ds&&e.c===c&&(e.n||'')===(n||'')})}
 function hasW(ds,c){return !!c&&entries.some(function(e){return e.t==='lavoro'&&e.d===ds&&e.c===c})}
 function renderCal(){
