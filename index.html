@@ -188,7 +188,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 <body>
 <main>
 <div class="brand"><h1>Registro Lavori</h1><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -318,6 +318,8 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
   <div id="mailL"></div>
 </section>
 
+<section id="s11" style="display:none"><div id="f24v"></div></section>
+
 <button id="fab" aria-label="Aggiungi spesa o lavoro">+</button>
 
 <div id="pvw" style="display:none"><div class="pvbar"><button id="pvclose">Chiudi</button><button class="pri" id="pvdl">Scarica PDF</button></div><div class="sheet" id="sheet"></div></div>
@@ -333,12 +335,13 @@ var LH_HEAD='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABncAAAE7CAIAAACAA0M9A
 var tcfg={coef:84,rate:15,red:true,all:false,y:''},imps=[],impHide=false,jumped=false;
 var IMP={"id":"xlsx2025b","clients":[{"name":"MG SERVICE","rate":180,"kmr":0,"color":"#9e2e2e"},{"name":"MEDIAEXTREME S.R.L.","rate":250,"kmr":0.2,"color":"#9e5b2e"},{"name":"E2S Srl","rate":250,"kmr":0,"color":"#9e882e"},{"name":"IMPUT SRL","rate":300,"kmr":0.35,"color":"#889e2e"},{"name":"CM S.r.l.","rate":300,"kmr":0,"color":"#5b9e2e"},{"name":"AUDIO SISTEMI S.R.L.","rate":50,"kmr":0,"color":"#2e9e2e"},{"name":"Parrocchia santi Pietro e Paolo","rate":200,"kmr":0,"color":"#2e9e5b"},{"name":"CM S.r.l. Terra","rate":250,"kmr":0,"color":"#2e9e88"},{"name":"Coriolano Service","rate":200,"kmr":0,"color":"#2e889e"},{"name":"Titan Sound","rate":250,"kmr":0,"color":"#2e5b9e"},{"name":"Gialappas","rate":250,"kmr":0,"color":"#2e2e9e"},{"name":"F.O.H. srl","rate":300,"kmr":0.2,"color":"#5b2e9e"},{"name":"Gemini Luci","rate":250,"kmr":0,"color":"#882e9e"},{"name":"Francesco Salvadeo","rate":350,"kmr":0,"color":"#9e2e88"},{"name":"DOC Navi","rate":227.5,"kmr":0,"color":"#9e2e5b"}],"days":[{"cn":"MG SERVICE","d":"2025-01-08","n":"Arcimboldi","a":180,"s":0,"k":45,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-17","n":"Evento Enovis","a":250,"s":400,"k":100,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-18","n":"Evento Enovis","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-19","n":"Evento Enovis","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-20","n":"Evento Enovis","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-21","n":"Evento Enovis","a":250,"s":0,"k":50,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-22","n":"Evento Enovis","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-23","n":"Evento Enovis","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-01-24","n":"Evento Enovis","a":250,"s":0,"k":100,"kmo":0.0},{"cn":"E2S Srl","d":"2025-01-27","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-01-28","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-01-29","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-01-30","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-01-31","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-02-01","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-02-02","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-02-03","n":"MSC Splendida","a":250,"s":0},{"cn":"E2S Srl","d":"2025-02-04","n":"MSC Splendida","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-02-19","n":"smontaggio milano","a":250,"s":0,"k":250,"kmo":0.0},{"cn":"Gialappas","d":"2025-02-26","n":"Gialappas Band","a":250,"s":0,"k":250,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-02-27","n":"Parma Calcio","a":250,"s":0,"k":40,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-03-04","n":"Twiga","a":250,"s":0,"k":280,"kmo":0.0},{"cn":"MG SERVICE","d":"2025-03-06","n":"Matteo Manerbio","a":180,"s":20,"k":40,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-03-07","n":"Allianz BOXE","a":250,"s":250,"k":300,"kmo":0.0},{"cn":"E2S Srl","d":"2025-03-14","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-15","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-16","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-17","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-18","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-19","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-20","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-21","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-22","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-23","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-24","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-25","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-26","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-27","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-28","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-29","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-30","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-03-31","n":"MSC Poesia","a":250,"s":0},{"cn":"E2S Srl","d":"2025-04-01","n":"","a":250,"s":0},{"cn":"E2S Srl","d":"2025-04-02","n":"","a":250,"s":0},{"cn":"E2S Srl","d":"2025-04-03","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-10","n":"Montaggio Mir","a":250,"s":0,"k":124,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-11","n":"Montaggio Mir","a":250,"s":0,"k":124,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-15","n":"Auto Torino","a":250,"s":50,"k":20,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-16","n":"Auto Torino","a":250,"s":50,"k":80,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-18","n":"MEDIEXTREME BOXE","a":250,"s":150,"k":160,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-21","n":"MEDIEXTREME","a":250,"s":0,"k":222,"kmo":0.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-04-22","n":"MEDIEXTREME","a":250,"s":0,"k":100,"kmo":0.0},{"cn":"MG SERVICE","d":"2025-04-24","n":"VEROLA NOUVO VIGILI DEL FUOCO","a":180,"s":50,"k":40,"kmo":0.0},{"cn":"MG SERVICE","d":"2025-05-05","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-06","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-07","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-08","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-11","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-14","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-15","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-05-16","n":"","a":180,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-19","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-20","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-21","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-22","n":"","a":250,"s":100},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-23","n":"","a":250,"s":100},{"cn":"MG SERVICE","d":"2025-05-26","n":"","a":180,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-28","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-05-29","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-04","n":"Serie A Parma","a":250,"s":250},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-05","n":"cena paganini","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-06","n":"cena paganini","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-07","n":"Serie A Parma","a":250,"s":0},{"cn":"MG SERVICE","d":"2025-06-08","n":"green talk","a":180,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-10","n":"venezia","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-11","n":"venezia","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-12","n":"venezia","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-13","n":"venezia","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-14","n":"venezia","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-15","n":"venezia","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-06-21","n":"boxe pavesi","a":250,"s":250},{"cn":"IMPUT SRL","d":"2025-06-22","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-06-23","n":"","a":300,"s":500},{"cn":"IMPUT SRL","d":"2025-06-24","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-06-25","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-06-26","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-06-28","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-06-29","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-06-30","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-01","n":"KAPPA","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-02","n":"KAPPA","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-03","n":"KAPPA","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-04","n":"KAPPA","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-05","n":"KAPPA","a":300,"s":300},{"cn":"IMPUT SRL","d":"2025-07-06","n":"KAPPA","a":300,"s":300},{"cn":"IMPUT SRL","d":"2025-07-07","n":"KAPPA","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-12","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-13","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-07-14","n":"","a":300,"s":200},{"cn":"IMPUT SRL","d":"2025-07-15","n":"","a":300,"s":300},{"cn":"CM S.r.l.","d":"2025-07-17","n":"","a":300,"s":0},{"cn":"CM S.r.l.","d":"2025-07-18","n":"","a":300,"s":0},{"cn":"CM S.r.l.","d":"2025-07-19","n":"","a":300,"s":0},{"cn":"CM S.r.l.","d":"2025-07-20","n":"","a":300,"s":0},{"cn":"CM S.r.l.","d":"2025-07-21","n":"","a":300,"s":0},{"cn":"MG SERVICE","d":"2025-07-27","n":"","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-10","n":"MANERBEER","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-11","n":"MANERBEER","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-12","n":"MANERBEER","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-13","n":"MANERBEER","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-14","n":"MANERBEER","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-15","n":"MANERBEER","a":180,"s":0},{"cn":"MG SERVICE","d":"2025-08-16","n":"MANERBEER","a":180,"s":0},{"cn":"IMPUT SRL","d":"2025-08-24","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-08-25","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-09-01","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-09-07","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-09-08","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-09-09","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-09-10","n":"","a":300,"s":0},{"cn":"IMPUT SRL","d":"2025-09-11","n":"","a":300,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-09-17","n":"Allestimento bologna fiera","a":250,"s":0,"k":400,"kmo":80.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-09-18","n":"Allestimento azienda modena","a":250,"s":0,"k":150,"kmo":30.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-09-19","n":"Boxe Centro Pavesi","a":250,"s":250,"k":260,"kmo":52.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-09-21","n":"Allestimento quattro ruote","a":250,"s":0,"k":135,"kmo":27.0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-09-22","n":"Evento quattro ruote","a":250,"s":0,"k":135,"kmo":27.0},{"cn":"DOC Navi","d":"2025-09-24","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-09-25","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-09-26","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-09-27","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-09-28","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-09-29","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-09-30","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-10-01","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-10-02","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-10-03","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-10-04","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-10-12","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-13","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-14","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-15","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-16","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-17","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-18","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-19","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-20","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-21","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-22","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-25","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-26","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-27","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-28","n":"","a":227.5,"s":150},{"cn":"DOC Navi","d":"2025-10-29","n":"","a":227.5,"s":150},{"cn":"IMPUT SRL","d":"2025-11-11","n":"Nait Napoli","a":300,"s":0},{"cn":"DOC Navi","d":"2025-11-17","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-18","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-19","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-20","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-21","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-22","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-23","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-24","n":"","a":227.5,"s":0},{"cn":"DOC Navi","d":"2025-11-25","n":"","a":227.5,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-07","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-08","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-09","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-10","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-11","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-12","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-13","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-14","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-15","n":"","a":250,"s":0},{"cn":"MEDIAEXTREME S.R.L.","d":"2025-12-16","n":"","a":250,"s":0}],"spese":[{"d":"2025-01-08","cat":"Costo veicolo","n":"45 km","a":5.46},{"d":"2025-01-17","cat":"Costo veicolo","n":"100 km","a":12.14},{"d":"2025-01-21","cat":"Costo veicolo","n":"50 km","a":6.07},{"d":"2025-01-24","cat":"Costo veicolo","n":"100 km","a":12.14},{"d":"2025-02-10","cat":"Tasse","n":"inps","a":314.9},{"d":"2025-02-11","cat":"Tasse","n":"inail","a":725.52},{"d":"2025-02-19","cat":"Costo veicolo","n":"250 km","a":30.36},{"d":"2025-02-19","cat":"Telepass","n":"milano","a":16.0},{"d":"2025-02-26","cat":"Costo veicolo","n":"250 km","a":30.36},{"d":"2025-02-27","cat":"Costo veicolo","n":"40 km","a":4.86},{"d":"2025-02-27","cat":"Assicurazione","n":"macchina","a":1080.0},{"d":"2025-02-28","cat":"Tasse","n":"marche da bollo","a":16.0},{"d":"2025-03-04","cat":"Costo veicolo","n":"280 km","a":34},{"d":"2025-03-04","cat":"Telepass","n":"","a":16.0},{"d":"2025-03-06","cat":"Costo veicolo","n":"40 km","a":4.86},{"d":"2025-03-07","cat":"Costo veicolo","n":"300 km","a":36.43},{"d":"2025-03-07","cat":"Telepass","n":"","a":16.0},{"d":"2025-03-09","cat":"Commercialista","n":"GESTIONE","a":500.0},{"d":"2025-04-10","cat":"Costo veicolo","n":"124 km","a":15.06},{"d":"2025-04-10","cat":"Telepass","n":"","a":16.0},{"d":"2025-04-11","cat":"Costo veicolo","n":"124 km","a":15.06},{"d":"2025-04-11","cat":"Telepass","n":"","a":16.0},{"d":"2025-04-15","cat":"Costo veicolo","n":"20 km","a":2.43},{"d":"2025-04-16","cat":"Costo veicolo","n":"80 km","a":9.71},{"d":"2025-04-18","cat":"Costo veicolo","n":"160 km","a":19.43},{"d":"2025-04-18","cat":"Telepass","n":"","a":16.0},{"d":"2025-04-21","cat":"Costo veicolo","n":"222 km","a":26.96},{"d":"2025-04-21","cat":"Telepass","n":"","a":35.0},{"d":"2025-04-22","cat":"Costo veicolo","n":"100 km","a":12.14},{"d":"2025-04-24","cat":"Costo veicolo","n":"40 km","a":4.86},{"d":"2025-05-13","cat":"Commercialista","n":"spese varie","a":342.0},{"d":"2025-05-15","cat":"Tasse","n":"INPS","a":735.37},{"d":"2025-06-01","cat":"Tasse","n":"inps","a":720.0},{"d":"2025-06-02","cat":"Tasse","n":"tasse","a":6900.0},{"d":"2025-06-18","cat":"Tasse","n":"diritto camerale","a":58.0},{"d":"2025-06-19","cat":"Commercialista","n":"proforma","a":342.0},{"d":"2025-08-17","cat":"Tasse","n":"inps agosto","a":735.37},{"d":"2025-09-14","cat":"Commercialista","n":"commercialista","a":234.0},{"d":"2025-09-15","cat":"Tasse","n":"marche da bollo","a":14.0},{"d":"2025-10-04","cat":"Assicurazione","n":"","a":482.0}],"remove":[{"client":"MAGAZZINO","d":"2025-01-05"}],"newcats":["Commercialista","Assicurazione","Telepass","Tasse","Costo veicolo"]};
 var PAL=['#2b6cb0','#2f855a','#c05621','#805ad5','#d53f8c','#b7791f','#0f8b8d','#c53030'];
+var f24s=[];function f24merge(a){(a||[]).forEach(function(r){if(!f24s.some(function(x){return x.id===r.id}))f24s.push(r)})}
 var entries=[],clients=[],cats=['Carburante','Pedaggi','Vitto','Alloggio','Materiali','Attrezzatura','Altro'],ref=null,type='spesa',tab=1,sel=null,ov=false;
 function ymd(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
 var today=ymd(new Date()),month=today.slice(0,7);
 $('date').value=today;$('ps').value=today;$('pe').value=today;
 var tt;function status(t){$('st').textContent=t;if(/^(Salvato|Dati|Caricamento)/.test(t))return;var e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(function(){e.style.display='none'},3500)}
-function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps}}
+function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps,f24:f24s}}
 function TS(){var t=Date.now();try{localStorage.setItem('ledger_ts',String(t))}catch(e){}return t}
 function save(){
   try{localStorage.setItem('ledger2',JSON.stringify(snap()))}catch(e){}
@@ -395,12 +398,12 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
-  [0,1,2,3,4,5,6,7,8,9,10].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
-  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
+  [0,1,2,3,4,5,6,7,8,9,10,11].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
+  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
   if($('pa').value==='')setAmt('pSel','pa');
   if(type==='lavoro'&&$('amt').value==='')setAmt('cSel','amt');
-  renderCal();renderClients();renderRecap();renderSpese();renderDash();renderUnpaid();renderTax();renderImp();if(tab===9)renderBk();
+  renderCal();renderClients();renderRecap();renderSpese();renderDash();renderUnpaid();renderTax();renderF24();renderImp();if(tab===9)renderBk();
 }
 function blockOf(x){
   var a=x.d,b=x.d;
@@ -631,6 +634,63 @@ function rcompose(c,pdf,tit){
 }
 $('rsend').onclick=function(){if(!window.__gconnect){status('Disponibile solo nell’app su GitHub');return}sendRen()};
 if(!window.__gconnect)$('rsend').parentNode.style.display='none';
+
+function f24Ok(m){var t=m.rows.reduce(function(a,r){return a+(+r.imp||0)},0);return m.saldo!==null&&m.rows.length>0&&Math.abs(t-m.saldo)<0.011}
+function f24Tot(r){return r.mods.reduce(function(a,m){return a+(m.saldo!==null?m.saldo:m.rows.reduce(function(b,x){return b+(+x.imp||0)},0))},0)}
+function f24addSpese(rec,onlyOk){
+  if(cats.indexOf('Tasse')<0)cats.push('Tasse');
+  var n=0;
+  rec.mods.forEach(function(m,mi){if(m.added||(onlyOk&&!f24Ok(m)))return;m.added=true;m.rows.forEach(function(r,ri){
+    var src=rec.id+'#'+mi+'.'+ri;if(entries.some(function(e){return e.src===src}))return;
+    var amt=Math.round((+r.imp||0)*100)/100;if(!(amt>0))return;
+    entries.push({id:Date.now()+n,t:'spesa',d:rec.due,n:'F24 · '+f24Desc(r)+(r.anno?' '+r.anno:'')+(r.per?' ('+r.per+')':''),a:amt,cat:'Tasse',src:src});n++;
+  })});
+  rec.added=rec.mods.every(function(m){return m.added});return n;
+}
+function f24Store(mm,z,pgs,due){
+  var key=mm.id+'_'+String(z.id).slice(-12),ex=f24s.filter(function(r){return r.id===key})[0];
+  if(ex)return {rec:ex,isNew:false,n:0};
+  var ok=pgs.filter(function(p){return p.rows.length||p.saldo!==null});if(!ok.length)return null;
+  var md=String(mm.date||'').slice(0,10)||today;
+  var rec={id:key,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:ok.map(function(p){return {rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}}),paid:false,pd:'',added:false};
+  rec.ok=rec.mods.every(f24Ok);f24s.push(rec);
+  var n=f24addSpese(rec,true);
+  save();render();return {rec:rec,isNew:true,n:n};
+}
+function renderF24(){
+  var V=$('f24v');if(!V)return;V.textContent='';
+  var list=f24s.slice().sort(function(a,b){return (a.paid-b.paid)||(a.paid?b.due.localeCompare(a.due):a.due.localeCompare(b.due))});
+  var un=list.filter(function(r){return !r.paid}),ut=un.reduce(function(a,r){return a+f24Tot(r)},0);
+  var top=mk('div','card');top.appendChild(mk('div','k','Da pagare'));var tv=mk('div','v',eur.format(ut));top.appendChild(tv);
+  top.appendChild(mk('div','hint',un.length?un.length+(un.length===1?' F24 non pagato':' F24 non pagati'):'Tutti gli F24 sono pagati'));V.appendChild(top);
+  if(!list.length){var e0=mk('div','card');e0.appendChild(mk('div','hint','Nessun F24 ancora. Apri una email del commercialista nella scheda Email e premi “Leggi scadenza e importi”: gli importi arrivano qui e nelle spese (Tasse).'));V.appendChild(e0)}
+  list.forEach(function(rec){
+    var c=mk('div','card'),hd=mk('div','row');hd.style.cssText='align-items:center;gap:10px';
+    var lb=document.createElement('label');lb.style.cssText='display:flex;gap:8px;align-items:center;font-size:15px;flex:1';
+    var cb=document.createElement('input');cb.type='checkbox';cb.checked=!!rec.paid;cb.style.cssText='width:22px;height:22px;margin:0;flex:none';
+    cb.onchange=function(){rec.paid=cb.checked;rec.pd=rec.paid?today:'';save();render()};
+    lb.appendChild(cb);var dl=dueLine(rec.due),dt=mk('b','',rec.paid?'Pagato'+(rec.pd?' il '+new Date(rec.pd+'T12:00:00').toLocaleDateString('it-IT'):''):dl.text);dt.style.color=(!rec.paid&&dl.urgent)?'#ff6b6b':'';lb.appendChild(dt);hd.appendChild(lb);
+    var del=mk('button','','Elimina');del.style.cssText='flex:none;padding:4px 10px;margin:0';
+    del.onclick=function(){askConfirm('Eliminare questo F24?',['Verranno tolte anche le spese collegate (Tasse).'],function(){entries=entries.filter(function(e){return !(e.src&&e.src.indexOf(rec.id+'#')===0)});f24s=f24s.filter(function(x){return x.id!==rec.id});save();render()})};
+    hd.appendChild(del);c.appendChild(hd);
+    var sb=mk('div','hint',(rec.subj||rec.file)+(rec.nodue?' · scadenza non indicata: uso la data dell’email':''));sb.style.margin='4px 0 6px';c.appendChild(sb);
+    rec.mods.forEach(function(m,mi){
+      if(rec.mods.length>1){var mh=mk('div','k','Modello '+(mi+1));mh.style.marginTop='8px';c.appendChild(mh)}
+      m.rows.forEach(function(r){
+        var row=mk('div','row');row.style.cssText='align-items:center;gap:8px;margin:4px 0';
+        var tx=mk('span','',r.cod+(r.cau?' '+r.cau:'')+' · '+f24Desc(r)+(r.anno?' · '+r.anno:'')+(r.per?' · '+r.per:''));tx.style.cssText='flex:1;font-size:13px';row.appendChild(tx);
+        if(!m.added&&!f24Ok(m)){var inp=document.createElement('input');inp.type='number';inp.step='0.01';inp.value=r.imp;inp.style.cssText='width:100px;margin:0;flex:none';inp.onchange=function(){r.imp=parseFloat(inp.value)||0;rec.ok=rec.mods.every(f24Ok);save();render()};row.appendChild(inp)}
+        else{var am=mk('b','',eur.format(r.imp));am.style.flex='none';row.appendChild(am)}
+        c.appendChild(row);
+      });
+      var ok=f24Ok(m),sd=mk('div','',(m.saldo!==null?'Saldo finale: ':'Somma voci: ')+eur.format(m.saldo!==null?m.saldo:m.rows.reduce(function(a,x){return a+(+x.imp||0)},0))+(ok?' ✓':' ⚠ le voci non coincidono col saldo: correggi gli importi'));sd.style.cssText='font-weight:700;margin-top:4px';c.appendChild(sd);
+    });
+    if(rec.mods.length>1){var tt=mk('div','',(rec.mods.every(f24Ok)?'':'Circa ')+'Totale: '+eur.format(f24Tot(rec)));tt.style.cssText='font-weight:700;margin-top:6px';c.appendChild(tt)}
+    if(rec.added)c.appendChild(mk('div','hint','Segnato nelle spese, categoria Tasse, alla data della scadenza.'));
+    else{var ab=mk('button','pri','Aggiungi alle spese (Tasse)');ab.style.marginTop='8px';ab.onclick=function(){var n=f24addSpese(rec);save();render();status(n+' spese aggiunte in Tasse')};c.appendChild(ab)}
+    V.appendChild(c);
+  });
+}
 function fillCat(){
   var s=$('cat'),v=s.value;s.textContent='';
   cats.forEach(function(n){var o=mk('option','',n);o.value=n;s.appendChild(o)});
@@ -655,7 +715,7 @@ function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rat
 function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
-[1,2,3,4,5,6,7,8,9,10].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9,10,11].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
@@ -714,7 +774,7 @@ function ready(en,cs,msg,ct){if(ct&&ct.length)cats=ct;var ei={},ci={};entries.fo
   var fx=false;entries.forEach(function(e){if(e.d.slice(0,4)==='2025'&&e.id<1795620000000){e.d='2026'+e.d.slice(4);fx=true}});
   status(msg);render();setAmt('pSel','pa');if(fx)save();autoSnap();if(!window.__ld&&isLastDay()){window.__ld=1;setTimeout(function(){status('Ultimo giorno del mese: rendiconti pronti in Rendiconto Mensile')},800)}}
 render();
-function local(){var en=[],cs=[],ct;try{var j=JSON.parse(localStorage.getItem('ledger2')||'null');if(j){en=j.entries||[];cs=j.clients||[];ct=j.cats;(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)})}}catch(e){}ready(en,cs,'Dati salvati solo su questo dispositivo',ct)}
+function local(){var en=[],cs=[],ct;try{var j=JSON.parse(localStorage.getItem('ledger2')||'null');if(j){f24merge(j.f24);en=j.entries||[];cs=j.clients||[];ct=j.cats;(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)})}}catch(e){}ready(en,cs,'Dati salvati solo su questo dispositivo',ct)}
 var ysp=+today.slice(0,4);
 function renderSpese(){
   $('ylabel').textContent=ysp;
@@ -1014,7 +1074,9 @@ async function loadMail(){
                 var fb=mk('button','pri','Leggi scadenza e importi'),fr=mk('div');fb.style.cssText='display:block;margin-top:6px';fr.style.marginTop='6px';
                 fb.onclick=async function(){
                   fb.disabled=true;var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
-                  try{await window.__gconnect();var pgs=await f24Read(mm.id,z,function(x){fb.textContent=x});f24Show(pgs,due,fr);fb.textContent='Rileggi'}
+                  try{await window.__gconnect();var pgs=await f24Read(mm.id,z,function(x){fb.textContent=x});f24Show(pgs,due,fr);fb.textContent='Rileggi';
+                    var st=f24Store(mm,z,pgs,due);
+                    if(st){var nt=mk('div','hint',st.isNew?('Salvato nella pagina F24'+(st.rec.added?' e '+st.n+' spese segnate in Tasse.':(st.n?' e '+st.n+' spese segnate in Tasse; per il resto controlla le cifre in F24.':'. Controlla le cifre prima di aggiungerle alle spese.'))):'Gi\u00e0 presente nella pagina F24.');nt.style.marginTop='6px';fr.appendChild(nt);var go=mk('button','','Apri F24');go.style.marginTop='6px';go.onclick=function(){tab=11;render();window.scrollTo(0,0)};fr.appendChild(go)}}
                   catch(e){var c=e&&e.code;fr.textContent='';fr.appendChild(mk('div','hint',c==='libs'?'Non riesco a caricare il lettore: controlla la connessione.':c==='needs_reauth'?'Premi Aggiorna email per ricollegare Gmail.':'Lettura non riuscita ('+(c||(e&&e.message)||'errore')+').'));fb.textContent='Leggi scadenza e importi'}
                   fb.disabled=false;
                 };
@@ -1187,7 +1249,7 @@ $('bkauto').onchange=function(){lss('bk_auto',this.checked?'1':'0')};
 $('bkfile').onchange=function(){
   var f=this.files&&this.files[0];if(!f)return;var rd=new FileReader();
   rd.onload=function(){try{var j=JSON.parse(rd.result);if(!j||!Array.isArray(j.entries))throw 0;
-    var n0=entries.length;ready(j.entries,j.clients||[],'Dati ripristinati',j.cats);save();render();status('Ripristino completato: '+(entries.length-n0)+' voci aggiunte')}catch(e){status('File non valido')}$('bkfile').value=''};
+    var n0=entries.length;f24merge(j.f24);ready(j.entries,j.clients||[],'Dati ripristinati',j.cats);save();render();status('Ripristino completato: '+(entries.length-n0)+' voci aggiunte')}catch(e){status('File non valido')}$('bkfile').value=''};
   rd.readAsText(f);
 };
 document.addEventListener('pointerdown',function(){if(lsg('bk_auto')==='0')return;if(lsg('bk_last')===dnow()||!entries.length)return;lss('bk_last',dnow());fileBackup(true)},{once:false,capture:true});
@@ -1239,7 +1301,7 @@ local();
   var unsub=null,skipped=false;
   function lts(){return +(lsg('ledger_ts')||0)}
   function applyRemote(j,ts){
-    entries=j.entries||[];clients=j.clients||[];if(j.cats&&j.cats.length)cats=j.cats;imps=j.imp||[];
+    entries=j.entries||[];clients=j.clients||[];if(j.cats&&j.cats.length)cats=j.cats;imps=j.imp||[];f24s=j.f24||[];
     lss('ledger_ts',String(ts));lss('ledger2',JSON.stringify(snap()));render();status('Dati aggiornati dall’altro dispositivo');
   }
   function sdoc(d){if(!d)return null;var j=null;try{j=d.json?JSON.parse(d.json):null}catch(e){}return j}
@@ -1248,7 +1310,7 @@ local();
     try{
       var sn=await ref.get(),d=sn.exists?sn.data():null,j=sdoc(d);
       if(!d||!j){if(entries.length||clients.length)save()}
-      else if(!lts()){(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)});ready(j.entries||[],j.clients||[],'Dati sincronizzati',j.cats);save()}
+      else if(!lts()){(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)});f24merge(j.f24);ready(j.entries||[],j.clients||[],'Dati sincronizzati',j.cats);save()}
       else if((d.ts||0)>lts())applyRemote(j,d.ts);
       else if((d.ts||0)<lts())save();
     }catch(e){}
