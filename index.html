@@ -67,6 +67,7 @@ tr.cur td{font-weight:700}
 .leg{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:13px}
 
 #fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));width:58px;height:58px;border-radius:50%;background:var(--ac);color:var(--ac2);border:none;font-size:32px;line-height:1;padding:0;margin:0;z-index:9;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+#s0.tsp #tSpesa.on{background:#f2a7a7!important;border-color:#f2a7a7!important;color:#4a1414!important}#s0.tsp #add{background:#f2a7a7!important;border-color:#f2a7a7!important;color:#4a1414!important}
 #s0.ov{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10;background:var(--bg);overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 12px 24px}
 #ovbar{margin-bottom:10px}
 #sline{display:none;font-size:13px;color:var(--mut);text-align:center;margin-top:6px}
@@ -128,7 +129,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 </div>
 
 
-<section id="s0">
+<section id="s0" class="tsp">
   <div id="ovbar" style="display:none"><button id="ovclose">Chiudi</button></div>
   <div class="card" id="impcard" style="display:none"></div>
   <div class="card">
@@ -506,7 +507,7 @@ function hint(){
   var c=cl(+$('cSel').value);$('chint').textContent=c?'Tariffa base: '+eur.format(c.rate)+'. Puoi aumentarla per questo giorno.':'';
 }
 function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rate}
-function setType(t){type=t;$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
+function setType(t){type=t;$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
 [1,2,3,4,5,6,7,8,9].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
