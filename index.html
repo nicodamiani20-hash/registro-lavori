@@ -629,7 +629,7 @@ function renderTax(){
   ys.forEach(function(y){var o=mk('option','','Anno '+y);o.value=y;sel.appendChild(o)});
   if(ys.indexOf(tcfg.y)<0)tcfg.y=ys[0];sel.value=tcfg.y;
   var T=$('tax');T.textContent='';
-  var list=entries.filter(function(e){return e.t==='lavoro'&&e.d.slice(0,4)===tcfg.y});
+  var list=entries.filter(function(e){if(e.t!=='lavoro'||e.d.slice(0,4)!==tcfg.y)return false;var c=e.c?cl(e.c):null;return !(c&&/^\s*doc\b/i.test(c.name))});
   var paid=list.filter(function(e){return e.p}),unp=list.filter(function(e){return !e.p});
   var rp=paid.reduce(function(a,e){return a+owed(e)},0),ru=unp.reduce(function(a,e){return a+owed(e)},0);
   var rev=tcfg.all?rp+ru:rp;
