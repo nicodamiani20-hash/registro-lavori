@@ -188,6 +188,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
   <div class="card" id="rready"></div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;border-bottom:2px solid #3d8bff;padding-bottom:8px"><img id="rlogo" alt="" width="40" height="40"><div class="k" style="color:#3d8bff;margin:0">Rendiconto mensile dei lavori, per cliente</div></div>
+    <div class="row" style="margin-bottom:8px;align-items:end"><label style="font-size:12px;color:var(--mut)">Dal<input type="date" id="rfrom" style="margin:2px 0 0"></label><label style="font-size:12px;color:var(--mut)">Al<input type="date" id="rto" style="margin:2px 0 0"></label><button id="rclr" style="flex:none;width:auto;padding:8px 10px;font-size:12px;margin:0">Mese intero</button></div>
     <select id="rSel"></select>
     <div class="hint" id="rmail"></div>
     <div class="scroll"><table id="rt"></table></div>
@@ -387,16 +388,22 @@ function renderClients(){
 }
 var NF=false;
 function fdate(d){var t=new Date(d+'T12:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});return t.charAt(0).toUpperCase()+t.slice(1)}
+function rr(){var f=$('rfrom').value,t=$('rto').value;if(f&&t){return f<=t?[f,t]:[t,f]}return null}
+function rin(d){var r=rr();return r?(d>=r[0]&&d<=r[1]):d.slice(0,7)===month}
+function fdm(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT')}
+function rtitle(){var r=rr();return r?'Rendiconto dal '+fdm(r[0])+' al '+fdm(r[1]):'Rendiconto mensile - '+mname(month,{month:'long',year:'numeric'})}
+function rtag(){var r=rr();return r?r[0]+'_'+r[1]:month}
+function clearRange(){$('rfrom').value='';$('rto').value=''}
 function rrows(){var c=cl(+$('rSel').value);if(!c)return {c:null,rows:[],ex:[]};
-  var rows=inM(month).filter(function(e){return e.t==='lavoro'&&e.c===c.id}).sort(function(a,b){return a.d.localeCompare(b.d)});
-  var ex=entries.filter(function(e){if(e.t!=='spesa'||!e.bill||!e.w)return false;var j=entries.filter(function(y){return y.id===e.w})[0];return j&&j.c===c.id&&j.d.slice(0,7)===month}).sort(function(a,b){return a.d.localeCompare(b.d)}).map(function(e){return {d:e.d,a:e.a,w:e.w,label:(e.cat||'Spesa')+(e.n?' - '+e.n:'')}});
+  var rows=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id&&rin(e.d)}).sort(function(a,b){return a.d.localeCompare(b.d)});
+  var ex=entries.filter(function(e){if(e.t!=='spesa'||!e.bill||!e.w)return false;var j=entries.filter(function(y){return y.id===e.w})[0];return j&&j.c===c.id&&rin(j.d)}).sort(function(a,b){return a.d.localeCompare(b.d)}).map(function(e){return {d:e.d,a:e.a,w:e.w,label:(e.cat||'Spesa')+(e.n?' - '+e.n:'')}});
   return {c:c,rows:rows,ex:ex}}
 function rdesc(x){var p=[];if(x.n)p.push(x.n);if(x.s)p.push('Suppl.'+(x.sn?' ('+x.sn+')':''));return p.join(' - ')||'-'}
 function xv(r,j){return r.ex.filter(function(e){return e.w===j.id}).reduce(function(a,e){return a+e.a},0)}
 function num(n){return n.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2})+' EUR'}
 function fillRSel(){
   var sl=$('rSel'),v=sl.value,ids={};sl.textContent='';
-  inM(month).forEach(function(e){if(e.t==='lavoro'&&e.c)ids[e.c]=1});
+  entries.forEach(function(e){if(e.t==='lavoro'&&e.c&&rin(e.d))ids[e.c]=1});
   var cs=clients.filter(function(c){return ids[c.id]}).sort(function(a,b){return a.name.localeCompare(b.name)});
   if(!cs.length){var o0=mk('option','','Nessun lavoro in questo mese');o0.value='';sl.appendChild(o0);sl.value='';return}
   cs.forEach(function(c){var o=mk('option','',c.name);o.value=c.id;sl.appendChild(o)});
@@ -423,7 +430,7 @@ function renderReady(){
       var row=mk('div','row');row.style.cssText='display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap';
       var dot=mk('span');dot.style.cssText='width:10px;height:10px;background:'+c.color+';flex:none';row.appendChild(dot);
       var nm=mk('span','',c.name+' · '+eur.format(ms[m][c.id].t));nm.style.cssText='flex:1;min-width:120px';row.appendChild(nm);
-      function go(fn){NF=false;month=m;fillRSel();$('rSel').value=c.id;renderRecap();fn()}
+      function go(fn){NF=false;clearRange();month=m;fillRSel();$('rSel').value=c.id;renderRecap();fn()}
       var a=mk('button','pri','Anteprima');a.onclick=function(){go(showPreview)};
       var b=mk('button','pri','PDF');b.onclick=function(){go(function(){$('rpdf').onclick()})};
       row.appendChild(a);row.appendChild(b);R.appendChild(row);
@@ -433,7 +440,7 @@ function renderReady(){
 function renderRecap(){
   renderReady();fillRSel();
   var r=rrows(),T=$('rt'),b=0,s=0,k=0,ml=$('rmail');T.textContent='';ml.textContent='';
-  if(r.c&&r.c.email){var am=mk('a','','Scrivi a '+r.c.email);am.href='mailto:'+r.c.email+'?subject='+encodeURIComponent('Rendiconto mensile '+mname(month,{month:'long',year:'numeric'}));am.target='_blank';ml.appendChild(am)}
+  if(r.c&&r.c.email){var am=mk('a','','Scrivi a '+r.c.email);am.href='mailto:'+r.c.email+'?subject='+encodeURIComponent(rtitle());am.target='_blank';ml.appendChild(am)}
   var hr=mk('tr');['Data','Base','Suppl.','Rimborso km','Spese extra','Totale'].forEach(function(h){hr.appendChild(mk('th','',h))});T.appendChild(hr);
   r.rows.forEach(function(x){b+=x.a;s+=x.s||0;k+=kmv(x);var tr=mk('tr');[new Date(x.d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}),eur.format(x.a),x.s?eur.format(x.s):'—',kmv(x)||x.k?eur.format(kmv(x))+(x.k?' ('+x.k+' km)':''):'—',xv(r,x)?eur.format(xv(r,x)):'—',eur.format(x.a+(x.s||0)+kmv(x)+xv(r,x))].forEach(function(v){tr.appendChild(mk('td','',v))});T.appendChild(tr)});
   var xs=r.ex.reduce(function(a,e){return a+e.a},0);var tt=mk('tr','cur');['Totale ('+r.rows.length+' gg)',eur.format(b),eur.format(s),eur.format(k)+' ('+r.rows.reduce(function(a,x){return a+(x.k||0)},0)+' km)',eur.format(xs),eur.format(b+s+k+xs)].forEach(function(v){tt.appendChild(mk('td','',v))});T.appendChild(tt);
@@ -450,10 +457,10 @@ $('rpdf').onclick=async function(){
   function deco(){doc.addImage(LH_HEAD,'PNG',0,0,210,40);doc.addImage(LH_FOOT,'PNG',0,272,210,25)}
   function np(){doc.addPage();deco();y=48}
   deco();
-  doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text('Rendiconto mensile - '+mname(month,{month:'long',year:'numeric'}),15,y);y+=3;doc.setDrawColor(61,139,255);doc.setLineWidth(0.6);doc.line(15,y,195,y);doc.setLineWidth(0.2);doc.setDrawColor(0);y+=5;doc.setTextColor(0);
+  doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text(rtitle(),15,y);y+=3;doc.setDrawColor(61,139,255);doc.setLineWidth(0.6);doc.line(15,y,195,y);doc.setLineWidth(0.2);doc.setDrawColor(0);y+=5;doc.setTextColor(0);
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.text('Cliente: '+r.c.name,15,y);if(r.c.email){y+=5;doc.text('Email: '+r.c.email,15,y)}y+=10;
   if(NF){doc.setFontSize(11);r.rows.forEach(function(x){var ln=doc.splitTextToSize(x.n||'-',100),h=Math.max(1,ln.length)*5+2;if(y+h>266){np()}doc.text(fdate(x.d),15,y);doc.text(ln,80,y);y+=h});
-    var fn2='Date-'+r.c.name.replace(/[^A-Za-z0-9]+/g,'-')+'-'+month+'.pdf';
+    var fn2='Date-'+r.c.name.replace(/[^A-Za-z0-9]+/g,'-')+'-'+rtag()+'.pdf';
     try{var dl2=await claude.use('downloads');if(dl2)await dl2.save({filename:fn2,data:doc.output('arraybuffer')});else doc.save(fn2);status('PDF pronto')}catch(e){status('Download non riuscito: '+((e&&e.message)||e))}
     return}
   function head(){doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(9);doc.text('Data',15,y);doc.text('Descrizione',34,y);doc.text('Base',88,y,{align:'right'});doc.text('Suppl.',104,y,{align:'right'});doc.text('Rimborso km',142,y,{align:'right'});doc.text('Spese extra',167,y,{align:'right'});doc.text('Totale',195,y,{align:'right'});y+=2;doc.setDrawColor(61,139,255);doc.line(15,y,195,y);doc.setDrawColor(0);doc.setTextColor(0);y+=5;doc.setFont('helvetica','normal')}
@@ -471,7 +478,7 @@ $('rpdf').onclick=async function(){
   if(r.ex.length){y+=12;if(y>254){np()}doc.setFont('helvetica','bold');doc.text('Spese extra',15,y);y+=6;doc.setFont('helvetica','normal');
     r.ex.forEach(function(x){var ln=doc.splitTextToSize(x.label,110),h=ln.length*5;if(y+h>266){np()}doc.text(new Date(x.d+'T12:00:00').toLocaleDateString('it-IT'),15,y);doc.text(ln,38,y);doc.text(num(x.a),195,y,{align:'right'});y+=h+1})}
   y+=8;if(y>262){np()}doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(61,139,255);var tn=num(b+s+k+xt);doc.text(tn,195,y,{align:'right'});doc.text('Totale',195-doc.getTextWidth(tn)-4,y,{align:'right'});y+=6;doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(110);doc.text(FORF,195,y,{align:'right'});
-  var fn='Rendiconto-'+r.c.name.replace(/[^A-Za-z0-9]+/g,'-')+'-'+month+'.pdf';
+  var fn='Rendiconto-'+r.c.name.replace(/[^A-Za-z0-9]+/g,'-')+'-'+rtag()+'.pdf';
   try{var dl=await claude.use('downloads');if(dl)await dl.save({filename:fn,data:doc.output('arraybuffer')});else doc.save(fn);status('PDF pronto')}catch(e){status('Download non riuscito: '+((e&&e.message)||e))}
 };
 function fillCat(){
@@ -498,7 +505,7 @@ function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rat
 function setType(t){type=t;$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
-[1,2,3,4,5,6,7,8,9].forEach(function(n){$('b'+n).onclick=function(){tab=n;month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
@@ -841,7 +848,7 @@ function showPreview(){
   if(!r.rows.length){status('Nessun lavoro per questo cliente nel mese');return}
   var S=$('sheet'),b=0,s=0,k=0,xt=0;S.textContent='';
   var hi=mk('img');hi.src=LH_HEAD;hi.alt='';hi.style.cssText='display:block;width:calc(100% + 32px);margin:-16px -16px 12px -16px;border-radius:6px 6px 0 0';S.appendChild(hi);
-  var th=mk('div');th.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px';var h2=mk('h2','','Rendiconto mensile - '+mname(month,{month:'long',year:'numeric'}));h2.style.margin='0';var lg=mk('img');lg.src=LOGO_ND;lg.alt='';lg.style.cssText='width:44px;height:44px;flex:none';th.appendChild(h2);S.appendChild(th);
+  var th=mk('div');th.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px';var h2=mk('h2','',rtitle());h2.style.margin='0';var lg=mk('img');lg.src=LOGO_ND;lg.alt='';lg.style.cssText='width:44px;height:44px;flex:none';th.appendChild(h2);S.appendChild(th);
   S.appendChild(mk('div','','Cliente: '+r.c.name));
   if(r.c.email)S.appendChild(mk('div','','Email: '+r.c.email));
   if(NF){var ul=mk('div');ul.style.cssText='margin:12px 0 6px;line-height:1.9';r.rows.forEach(function(x){var d=mk('div');d.style.cssText='display:flex;gap:10px;justify-content:space-between';d.appendChild(mk('span','',fdate(x.d)));var t=mk('span','',x.n||'-');t.style.cssText='text-align:right;color:#444';d.appendChild(t);ul.appendChild(d)});S.appendChild(ul);var fi0=mk('img');fi0.src=LH_FOOT;fi0.alt='';fi0.style.cssText='display:block;width:calc(100% + 32px);margin:18px -16px -16px -16px;border-radius:0 0 6px 6px';S.appendChild(fi0);$('toast').style.display='none';$('pvw').style.display='block';$('pvw').scrollTop=0;return}
@@ -869,7 +876,7 @@ $('rdpdf').onclick=async function(){NF=true;await $('rpdf').onclick()};
 $('pvclose').onclick=function(){$('pvw').style.display='none'};
 $('pvdl').onclick=function(){$('rpdf').onclick()};
 $('rpdf').addEventListener('click',function(){NF=false},true);
-$('rSel').onchange=renderRecap;
+$('rSel').onchange=renderRecap;$('rfrom').onchange=$('rto').onchange=renderRecap;$('rclr').onclick=function(){clearRange();renderRecap()};
 local();
 (async function(){
   var fb=window.firebase;
