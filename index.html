@@ -561,6 +561,30 @@ $('padd').onclick=function(){
   }
   $('pdesc').value='';ov=false;month=s.slice(0,7);save();render();status(n+' giornate aggiunte'+(pk>0&&!c.kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''))
 };
+function askConfirm(title,lines,go){
+  var o=$('cfm');if(!o){o=mk('div');o.id='cfm';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(o)}
+  o.textContent='';var c=mk('div','card');c.style.cssText='width:100%;max-width:360px';
+  c.appendChild(mk('div','k',title));lines.forEach(function(l){var d=mk('div','',l);d.style.margin='6px 0';c.appendChild(d)});
+  var r=mk('div','row');r.style.marginTop='10px';var ok=mk('button','pri','Conferma'),no=mk('button','','Annulla');ok.style.marginTop='0';
+  ok.onclick=function(){o.style.display='none';go()};no.onclick=function(){o.style.display='none'};
+  r.appendChild(ok);r.appendChild(no);c.appendChild(r);o.appendChild(c);o.style.display='flex';
+}
+(function(){
+  var addO=$('add').onclick,paddO=$('padd').onclick;
+  $('add').onclick=function(){
+    var a=parseFloat($('amt').value),d=$('date').value,c=+$('cSel').value;
+    if(!(a>=0)||$('amt').value===''||!d||(type==='lavoro'&&!cl(c))){addO();return}
+    var ls=[type==='lavoro'?(cl(c).name):($('cat').value||'Spesa'),fdm(d)+' · '+eur.format(a)];
+    if($('desc').value.trim())ls.push($('desc').value.trim());
+    askConfirm(type==='lavoro'?'Aggiungere questo lavoro?':'Aggiungere questa spesa?',ls,addO);
+  };
+  $('padd').onclick=function(){
+    var c=cl(+$('pSel').value),s0=$('ps').value,e0=$('pe').value,a=parseFloat($('pa').value);
+    if(!c||!s0||!e0||e0<s0||!(a>=0)||$('pa').value===''){paddO();return}
+    var n=dayDiff(e0,s0)+1;
+    askConfirm('Aggiungere queste giornate?',[c.name,'Dal '+fdm(s0)+' al '+fdm(e0)+' ('+n+(n===1?' giorno':' giorni')+')',eur.format(a)+' al giorno'],paddO);
+  };
+})();
 $('cc').value=PAL[0];
 $('cadd').onclick=function(){
   var n=$('cn').value.trim(),r=parseFloat($('cr').value);
