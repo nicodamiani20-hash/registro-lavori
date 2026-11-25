@@ -110,7 +110,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 <body>
 <main>
 <div class="brand"><h1>Registro Lavori</h1></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b9">Backup</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Voci di spesa</button><button id="b9">Backup</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -219,6 +219,10 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
   <div id="tax"></div>
 </section>
 
+<section id="s10" style="display:none">
+  <div class="card"><div class="k" style="margin-bottom:8px">Elenco voci di spesa</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
+</section>
+
 <section id="s9" style="display:none">
   <div class="card">
     <div class="k" style="margin-bottom:8px">Salva tutti i dati sul telefono</div>
@@ -237,7 +241,6 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 
 <button id="fab" aria-label="Aggiungi spesa o lavoro">+</button>
 
-<div class="card" id="catcard"><div class="k" style="margin-bottom:8px">Elenco voci di spesa</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
 <div id="pvw" style="display:none"><div class="pvbar"><button id="pvclose">Chiudi</button><button class="pri" id="pvdl">Scarica PDF</button></div><div class="sheet" id="sheet"></div></div>
 <div id="st">Caricamento…</div>
 <div id="toast"></div>
@@ -310,9 +313,8 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
-  $('catcard').style.display=ov?'none':'';
-  [0,1,2,3,4,5,6,7,8,9].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
-  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
+  [0,1,2,3,4,5,6,7,8,9,10].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
+  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
   if($('pa').value==='')setAmt('pSel','pa');
   if(type==='lavoro'&&$('amt').value==='')setAmt('cSel','amt');
@@ -511,7 +513,7 @@ function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rat
 function setType(t){type=t;$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
-[1,2,3,4,5,6,7,8,9].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9,10].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
