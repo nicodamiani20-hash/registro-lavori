@@ -331,6 +331,10 @@ function moveBlock(bk,start){
   entries.forEach(function(e){if(e.t==='spesa'&&e.w&&ids[e.w])e.d=addD(e.d,delta)});
 }
 function addD(ds,n){var d=new Date(ds+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+/*SPELLFIX*/(function(){try{document.documentElement.lang='it';
+function fx(el){if(!el||el.nodeType!==1)return;var L=el.matches&&el.matches('input,textarea')?[el]:[];if(el.querySelectorAll)L=L.concat([].slice.call(el.querySelectorAll('input,textarea')));
+L.forEach(function(i){var t=(i.getAttribute('type')||'text').toLowerCase();if(t!=='text'&&t!=='search'&&i.tagName!=='TEXTAREA')return;i.setAttribute('spellcheck','true');i.setAttribute('autocorrect','on');i.setAttribute('autocapitalize','sentences');i.setAttribute('lang','it')})}
+fx(document.body);new MutationObserver(function(ms){ms.forEach(function(m){[].forEach.call(m.addedNodes,fx)})}).observe(document.body,{childList:true,subtree:true})}catch(e){}})();
 function sameW(ds,c,n){return !!c&&entries.some(function(e){return e.t==='lavoro'&&e.d===ds&&e.c===c&&(e.n||'')===(n||'')})}
 function hasW(ds,c){return !!c&&entries.some(function(e){return e.t==='lavoro'&&e.d===ds&&e.c===c})}
 function renderCal(){
