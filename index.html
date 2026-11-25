@@ -304,7 +304,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 </section>
 
 <section id="s8" style="display:none">
-  <div class="card"><div class="row"><button class="pri" id="mailr">Aggiorna email</button></div><div class="row" style="margin-top:8px"><button id="mfA">Tutte</button><button id="mfC">Commerc.</button><button id="mfO">Altre</button></div><div class="hint" id="mailh">Email di lavoro: promozioni, social e newsletter sono nascoste.</div></div>
+  <div class="card"><div class="row"><button class="pri" id="mailr">Aggiorna email</button></div><div class="row" style="margin-top:8px"><button id="mfA">Tutte</button><button id="mfC">Commerc.</button><button id="mfO">Clienti</button></div><div class="hint" id="mailh">Solo email del commercialista e dei tuoi clienti (indirizzi inseriti in Clienti).</div></div>
   <div id="mailL"></div>
 </section>
 
@@ -778,7 +778,16 @@ function mailAddr(s){var m=/<([^>]+)>/.exec(s||'');return (m?m[1]:(s||'')).trim(
 var MAIL_FROM=['contabilita2@consulentiassociati.net','contabilita3@consulentiassociati.net','contabilita4@consulentiassociati.net'];
 var mailF='a';
 function qC(d){return 'newer_than:'+d+' ('+MAIL_FROM.map(function(x){return 'from:'+x}).join(' OR ')+')'}
-function mailQuery(){return mailF==='c'?qC('365d'):'newer_than:120d in:inbox -category:promotions -category:social -category:updates -category:forums'}
+var FREE=/^(gmail|googlemail|hotmail|outlook|live|libero|virgilio|yahoo|icloud|me|tiscali|alice|tim|pec|msn)\./i;
+function cmails(){var a=[];clients.forEach(function(c){String(c.email||'').split(/[\s,;]+/).forEach(function(x){x=x.trim().toLowerCase();if(x.indexOf('@')>0)a.push(x)})});return a}
+function cdoms(){var d=[];cmails().forEach(function(x){var q=x.split('@')[1];if(q&&!FREE.test(q)&&d.indexOf(q)<0)d.push(q)});return d}
+function isClient(f){f=(f||'').toLowerCase();if(cmails().indexOf(f)>=0)return true;var q=f.split('@')[1];return !!q&&cdoms().indexOf(q)>=0}
+function mailQuery(){
+  if(mailF==='c')return qC('365d');
+  var t=(mailF==='o'?[]:MAIL_FROM).concat(cmails(),cdoms());
+  if(!t.length)t=['nessuno@invalid.local'];
+  return 'newer_than:365d ('+t.map(function(x){return 'from:'+x}).join(' OR ')+')';
+}
 
 function diag(o,d){d=d||0;if(o===null||o===undefined)return String(o);if(typeof o==='string')return 'str('+o.length+'):'+o.slice(0,50).replace(/[^\x20-\x7e]/g,'?');if(typeof o!=='object')return typeof o;if(d>4)return '…';if(Array.isArray(o))return '['+o.slice(0,4).map(function(x){return diag(x,d+1)}).join(', ')+']';return '{'+Object.keys(o).slice(0,10).map(function(k){return k+':'+diag(o[k],d+1)}).join(', ')+'}'}
 function findB64(o,d){
@@ -819,7 +828,7 @@ async function loadMail(){
     th.forEach(function(t){
       var m=(t.messages||[])[0]||{},from=mailAddr(m.sender);
       var isC=MAIL_FROM.indexOf(from)>=0;
-      if(!from||(mailF==='c'&&!isC)||(mailF==='o'&&isC)||(!isC&&MAIL_BAD.test(m.sender||'')))return;
+      if(!from||(mailF==='c'&&!isC)||(mailF==='o'&&isC)||(!isC&&!isClient(from)))return;
       shown++;
       var card=mk('div','card'),top=mk('div','k',((m.addressDisplayNames&&m.addressDisplayNames[0]&&m.addressDisplayNames[0].displayName)||from)+(isC?' \u00b7 COMMERCIALISTA':''));
       if(isC)card.style.borderLeft='3px solid var(--ac,#3b82f6)';
@@ -873,7 +882,7 @@ async function loadMail(){
       
       card.appendChild(row);card.appendChild(box);L.appendChild(card);
     });
-    h.textContent=shown?shown+(mailF==='c'?' email del commercialista (ultimo anno)':mailF==='o'?' altre email (ultimi 4 mesi)':' email di lavoro (ultimi 4 mesi)'):'Nessuna email trovata.';markSeen(th);
+    h.textContent=shown?shown+(mailF==='c'?' email del commercialista (ultimo anno)':mailF==='o'?' email dei clienti (ultimo anno)':' email di lavoro (ultimo anno)'):(mailF!=='c'&&!cmails().length?'Nessuna email trovata. Inserisci l\u2019email dei clienti nella pagina Clienti.':'Nessuna email trovata.');markSeen(th);
     mailLoaded=true;
   }catch(e){
     var c=e&&e.code;
