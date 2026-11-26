@@ -554,14 +554,16 @@ function rr(){var f=$('rfrom').value,t=$('rto').value;if(f&&t){return f<=t?[f,t]
 function rin(d){var r=rr();return r?(d>=r[0]&&d<=r[1]):d.slice(0,7)===month}
 function fdm(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT')}
 var RG=null;
+function rgk(){return month+'|'+$('rfrom').value+'|'+$('rto').value}
 function rgr(d){var a=RG.rows[0],b=RG.rows[RG.rows.length-1];return a===b?'del '+fdm(a):'dal '+fdm(a)+' al '+fdm(b)}
 function rtitle(){if(RG)return 'Rendiconto '+RG.name+' '+rgr(RG.dates);var r=rr();return r?'Rendiconto dal '+fdm(r[0])+' al '+fdm(r[1]):'Rendiconto mensile - '+mname(month,{month:'long',year:'numeric'})}
 function rtag(){if(RG)return 'lavoro_'+RG.rows[0]+'_'+RG.rows[RG.rows.length-1];var r=rr();return r?r[0]+'_'+r[1]:month}
 function clearRange(){$('rfrom').value='';$('rto').value=''}
 function rrows(){var c=cl(+$('rSel').value);if(!c)return {c:null,rows:[],ex:[]};
   var rows=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id&&rin(e.d)}).sort(function(a,b){return a.d.localeCompare(b.d)});
-  if(RG){var ok=RG.ids.every(function(i){return rows.some(function(e){return e.id===i})});if(ok&&RG.c===c.id)rows=rows.filter(function(e){return RG.ids.indexOf(e.id)>=0});else RG=null}
-  var ex=entries.filter(function(e){if(e.t!=='spesa'||!e.bill||!e.w)return false;var j=entries.filter(function(y){return y.id===e.w})[0];return j&&j.c===c.id&&rin(j.d)&&(!RG||RG.ids.indexOf(j.id)>=0)}).sort(function(a,b){return a.d.localeCompare(b.d)}).map(function(e){return {d:e.d,a:e.a,w:e.w,label:(e.cat||'Spesa')+(e.n?' - '+e.n:'')}});
+  if(RG){var all=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id&&RG.ids.indexOf(e.id)>=0}).sort(function(a,b){return a.d.localeCompare(b.d)});
+    if(RG.c===c.id&&RG.key===rgk()&&all.length===RG.ids.length)rows=all;else RG=null}
+  var ex=entries.filter(function(e){if(e.t!=='spesa'||!e.bill||!e.w)return false;var j=entries.filter(function(y){return y.id===e.w})[0];return j&&j.c===c.id&&(RG?RG.ids.indexOf(j.id)>=0:rin(j.d))}).sort(function(a,b){return a.d.localeCompare(b.d)}).map(function(e){return {d:e.d,a:e.a,w:e.w,label:(e.cat||'Spesa')+(e.n?' - '+e.n:'')}});
   return {c:c,rows:rows,ex:ex}}
 function rdesc(x){var p=[];if(x.n)p.push(x.n);if(x.s)p.push('Suppl.'+(x.sn?' ('+x.sn+')':''));return p.join(' - ')||'-'}
 function xv(r,j){return r.ex.filter(function(e){return e.w===j.id}).reduce(function(a,e){return a+e.a},0)}
@@ -604,14 +606,14 @@ function renderReady(){
   });
 }
 function rgroups(c){
-  var rows=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id&&rin(e.d)}).sort(function(a,b){return a.d.localeCompare(b.d)});
+  var rows=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id}).sort(function(a,b){return a.d.localeCompare(b.d)});
   var gs=[],cur=null;
   rows.forEach(function(e){
     var k=(e.n||'').trim().toLowerCase();
     if(cur&&k&&cur.k===k&&Math.round((new Date(e.d+'T12:00:00')-new Date(cur.rows[cur.rows.length-1]+'T12:00:00'))/86400000)<=1){cur.rows.push(e.d);cur.ids.push(e.id)}
     else{cur={k:k,name:(e.n||'').trim(),rows:[e.d],ids:[e.id],c:c.id};gs.push(cur)}
   });
-  return gs.filter(function(g){return g.name&&g.ids.length>1});
+  return gs.filter(function(g){return g.name&&g.ids.length>1&&g.rows.some(rin)});
 }
 function renderGroups(){
   var G=$('rgrp');if(!G)return;G.textContent='';var c=cl(+$('rSel').value);if(!c)return;
@@ -620,11 +622,11 @@ function renderGroups(){
     var bn=mk('div','hint','Recap solo del lavoro: '+RG.name+' ('+RG.ids.length+' gg, '+rgr()+')');bn.style.cssText='font-weight:700;margin:8px 0 4px';G.appendChild(bn);
     var bk=mk('button','','Torna a tutto il periodo');bk.style.cssText='margin:0 0 8px;width:100%';bk.onclick=function(){RG=null;renderRecap()};G.appendChild(bk);return}
   if(!gs.length)return;
-  G.appendChild(mk('div','k','Lavori di giorni consecutivi con la stessa descrizione'));
+  G.appendChild(mk('div','k','Lavori di giorni consecutivi con la stessa descrizione (anche a cavallo di due mesi)'));
   gs.forEach(function(g){
     var row=mk('div','row');row.style.cssText='display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap';
     var a=g.rows[0],b=g.rows[g.rows.length-1],tx=mk('span','',g.name+' \u00b7 '+g.ids.length+' gg ('+new Date(a+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+'\u2013'+new Date(b+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+')');tx.style.cssText='flex:1;min-width:140px;font-size:14px';row.appendChild(tx);
-    var bt=mk('button','pri','Recap solo questo');bt.style.cssText='width:auto;margin:0;padding:6px 10px;font-size:12px';bt.onclick=function(){RG=g;renderRecap();$('rt').scrollIntoView({behavior:'smooth',block:'start'})};row.appendChild(bt);G.appendChild(row);
+    var bt=mk('button','pri','Recap solo questo');bt.style.cssText='width:auto;margin:0;padding:6px 10px;font-size:12px';bt.onclick=function(){g.key=rgk();RG=g;renderRecap();$('rt').scrollIntoView({behavior:'smooth',block:'start'})};row.appendChild(bt);G.appendChild(row);
   });
 }
 function renderRecap(){
