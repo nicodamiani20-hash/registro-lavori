@@ -406,7 +406,7 @@ function entryRow(x,showDate){
   var a=mk('b',x.t==='lavoro'?'in':'out',(x.t==='lavoro'?'+':'−')+eur.format(x.a+(x.s||0)+kmv(x)));
   var b=mk('button','','×');b.setAttribute('aria-label','Elimina');b.onclick=function(){delEntry(x.id)};
   r.appendChild(d);r.appendChild(a);
-  if(x.t==='lavoro'){var pk=mk('input');pk.type='checkbox';pk.checked=!!x.p;pk.setAttribute('aria-label','Pagata');pk.onchange=function(){x.p=pk.checked;save();render()};var lb=mk('label','ck');lb.style.cssText='margin:0;font-size:12px;white-space:nowrap';lb.appendChild(pk);lb.appendChild(document.createTextNode('Pagata'));r.appendChild(lb)}
+  if(x.t==='lavoro'){var pk=mk('input');pk.type='checkbox';pk.checked=!!x.p;pk.setAttribute('aria-label','Pagata');pk.onchange=function(){setPaid(x,pk.checked)};var lb=mk('label','ck');lb.style.cssText='margin:0;font-size:12px;white-space:nowrap';lb.appendChild(pk);lb.appendChild(document.createTextNode('Pagata'));r.appendChild(lb)}
   r.appendChild(b);
   if(showDate&&x.t==='lavoro'){var w=mk('div'),sr=mk('div','row'),si=mk('input');si.type='number';si.step='0.01';si.min='0';si.placeholder='Supplemento €';si.value=x.s||'';var ki=mk('input');ki.type='number';ki.step='0.1';ki.min='0';ki.placeholder='Km percorsi';ki.value=x.k||'';var sd=mk('input');sd.type='text';sd.maxLength=80;sd.placeholder='Descrizione supplemento';sd.value=x.sn||'';var nd=mk('input');nd.type='text';nd.maxLength=120;nd.placeholder='Descrizione del lavoro';nd.value=x.n||'';var sb=null;var sv=function(){x.n=nd.value.trim();x.s=Math.round((parseFloat(si.value)||0)*100)/100;x.sn=sd.value.trim();var nk=parseFloat(ki.value)||0;if(nk!==(x.k||0))delete x.kmo;x.k=nk;delete x.kr;save();status('Salvato'+(x.k>0&&!(cl(x.c)||{}).kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''))};si.onchange=sd.onchange=ki.onchange=nd.onchange=sv;sr.appendChild(si);w.appendChild(r);w.appendChild(sr);var dl=mk('div','k','Data (cambiala per spostare il lavoro)'),di=mk('input');di.type='date';di.value=x.d;di.onchange=function(){if(!di.value){di.value=x.d;return}x.d=di.value;month=di.value.slice(0,7);sel=di.value;$('ps').value=sel;$('pe').value=sel;save();render();status('Lavoro spostato')};var bk=blockOf(x);
     var dn=dayDiff(bk.b,bk.a)+1,dul=mk('div','k','Durata del lavoro (giorni)'),dui=mk('input');dui.type='number';dui.min='1';dui.max='90';dui.step='1';dui.value=dn;
@@ -917,6 +917,29 @@ $('padd').onclick=function(){
   }
   $('pdesc').value='';ov=false;month=s.slice(0,7);save();render();status(n+' giornate aggiunte'+(pk>0&&!c.kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''))
 };
+function jobOf(x){
+  if(!x||x.t!=='lavoro'||!x.c||!(x.n||'').trim())return [x];
+  var k=x.n.trim().toLowerCase(),rows=entries.filter(function(e){return e.t==='lavoro'&&e.c===x.c&&(e.n||'').trim().toLowerCase()===k}).sort(function(a,b){return a.d.localeCompare(b.d)});
+  var gs=[],cur=null;
+  rows.forEach(function(e){if(cur&&Math.round((new Date(e.d+'T12:00:00')-new Date(cur[cur.length-1].d+'T12:00:00'))/86400000)<=1)cur.push(e);else{cur=[e];gs.push(cur)}});
+  return gs.filter(function(g){return g.indexOf(x)>=0})[0]||[x];
+}
+function askChoice(title,lines,opts){
+  var o=$('cfm');if(!o){o=mk('div');o.id='cfm';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(o)}
+  o.textContent='';var c=mk('div','card');c.style.cssText='width:100%;max-width:360px';
+  c.appendChild(mk('div','k',title));lines.forEach(function(l){var d=mk('div','',l);d.style.margin='6px 0';c.appendChild(d)});
+  opts.forEach(function(op,i){var b=mk('button',i===0?'pri':'',op[0]);b.style.cssText='display:block;width:100%;margin:8px 0 0';b.onclick=function(){o.style.display='none';op[1]()};c.appendChild(b)});
+  var no=mk('button','','Annulla');no.style.cssText='display:block;width:100%;margin:8px 0 0';no.onclick=function(){o.style.display='none';render()};c.appendChild(no);
+  o.appendChild(c);o.style.display='flex';
+}
+function setPaid(x,v,msg){
+  var g=jobOf(x);
+  if(g.length<2){x.p=v;save();render();if(msg)status(msg);return}
+  var a=new Date(g[0].d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}),b=new Date(g[g.length-1].d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});
+  askChoice(v?'Segnare come pagata?':'Segnare come non pagata?',[x.n.trim()+' · '+g.length+' giorni ('+a+'–'+b+')'],[
+    ['Tutto il lavoro ('+g.length+' giorni)',function(){g.forEach(function(e){e.p=v});save();render();status(g.length+(v?' giornate segnate come pagate':' giornate segnate come non pagate'))}],
+    ['Solo questo giorno',function(){x.p=v;save();render()}]]);
+}
 function askConfirm(title,lines,go){
   var o=$('cfm');if(!o){o=mk('div');o.id='cfm';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(o)}
   o.textContent='';var c=mk('div','card');c.style.cssText='width:100%;max-width:360px';
@@ -1354,7 +1377,7 @@ function renderUnpaid(){
     rows.forEach(function(e){
       var r=mk('div','it'),d=mk('span','d',new Date(e.d+'T12:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}));
       var a=mk('b','',eur.format(owed(e))),b=mk('button','','Pagata');
-      b.onclick=function(){e.p=true;save();render();status('Giornata segnata come pagata')};
+      b.onclick=function(){setPaid(e,true,'Giornata segnata come pagata')};
       r.appendChild(d);r.appendChild(a);r.appendChild(b);card.appendChild(r);
     });
     var all=mk('button','pri',armed===k?'Conferma: segna tutte pagate':'Segna tutte pagate ('+rows.length+')');
