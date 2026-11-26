@@ -552,6 +552,7 @@ function renderCal(){
       cell.appendChild(ch);
       if(e.n&&!span&&!cont){var dd=mk('span','cdi',e.n);ch.appendChild(dd);if(jl&&!e.p)ch.firstChild.textContent=''}});
     if(ws.length>2)cell.appendChild(mk('span','chip','+'+(ws.length-2)));
+    if(entries.some(function(e){return e.d===ds&&e.t==='spesa'})){cell.style.position='relative';var bg=mk('span','cbag','\ud83d\udecd\ufe0f');bg.setAttribute('aria-label','Spese');bg.style.cssText='position:absolute;right:4px;bottom:2px;font-size:14px;line-height:1;z-index:4;pointer-events:none';cell.appendChild(bg)}
     cell.onclick=(function(d){return function(){var now=Date.now(),dbl=window.__lt&&window.__lt.d===d&&now-window.__lt.t<450;window.__lt={d:d,t:now};sel=d;$('ps').value=d;$('pe').value=d;if(dbl){window.__lt=null;$('fab').click();setType('lavoro');return}render()}})(ds);
     C.appendChild(cell);
   }
