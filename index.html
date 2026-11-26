@@ -400,7 +400,15 @@ function days(m){
   return {w:Object.keys(w).length,h:Math.max(0,el-Object.keys(we).length)};
 }
 function mk(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
-function delEntry(id){entries=entries.filter(function(y){return y.id!==id});save();render();status('Movimento eliminato')}
+function delEntry(id){
+  var x=entries.filter(function(y){return y.id===id})[0],g=x?jobOf(x):[];
+  function del(ids,m){entries=entries.filter(function(y){return ids.indexOf(y.id)<0});save();render();status(m)}
+  if(g.length<2){del([id],'Movimento eliminato');return}
+  var f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})};
+  askChoice('Eliminare quale parte?',[x.n.trim()+' \u00b7 '+g.length+' giorni ('+f(g[0].d)+'\u2013'+f(g[g.length-1].d)+')'],[
+    ['Solo questo giorno ('+f(x.d)+')',function(){del([id],'Giorno eliminato')}],
+    ['Tutto il periodo ('+g.length+' giorni)',function(){del(g.map(function(e){return e.id}),g.length+' giorni eliminati')}]]);
+}
 function fillSel(s){
   var v=s.value;s.textContent='';
   if(!clients.length){s.appendChild(mk('option','','Nessun cliente: aggiungilo in "Clienti"'));s.value='';return}
