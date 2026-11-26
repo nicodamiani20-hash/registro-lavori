@@ -67,6 +67,10 @@ var MCP={callTool:async function(srv,tool,a){
       return {id:m.id,threadId:m.threadId,msgId:hd(m,'message-id'),refs:hd(m,'references'),subject:hd(m,'subject'),replyTo:hd(m,'reply-to')||hd(m,'from'),sender:hd(m,'from'),date:new Date(+m.internalDate||0).toISOString(),plaintextBody:t,snippet:m.snippet||'',attachments:atts(m.payload,[])};
     })}};
   }
+  if(tool==='get_message'){
+    var dm=await g('messages/'+a.messageId+'?format=full');
+    return {payload:{id:dm.id,attachments:atts(dm.payload,[])}};
+  }
   if(tool==='download_gmail_attachment'){
     var r=await g('messages/'+a.messageId+'/attachments/'+a.attachmentId);
     var b=(r.data||'').replace(/-/g,'+').replace(/_/g,'/');
@@ -673,10 +677,11 @@ function f24Store(mm,z,pgs,due,revive){
     if(rv.length){save();render();return {rec:rv[0],recs:rv,isNew:true,n:n0,count:rv.length}}
     return {rec:mine[0],recs:[],isNew:false,n:0}
   }
+  pgs.forEach(function(p,i){p.pn=i+1});
   var ok=pgs.filter(function(p){return p.rows.length||p.saldo!==null});if(!ok.length)return null;
   var md=String(mm.date||'').slice(0,10)||today,recs=[],n=0,dupRec=null;
   ok.forEach(function(p,ix){
-    var rec={id:base+'_'+(ix+1),part:ix+1,parts:ok.length,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:[{rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}],paid:false,pd:'',added:false};
+    var rec={id:base+'_'+(ix+1),part:ix+1,parts:ok.length,page:p.pn,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:[{rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}],paid:false,pd:'',added:false};
     rec.ok=rec.mods.every(f24Ok);
     var sg=f24Sig(rec),dup=f24s.filter(function(x){return x.id.indexOf(base)!==0&&(f24Sig(x)===sg||(x.due===rec.due&&Math.abs(f24Tot(x)-f24Tot(rec))<0.011))})[0];
     if(dup){dupRec=dup;return}
@@ -726,6 +731,23 @@ async function f24Scan(manual){
   }else if(manual&&!fails&&gTokOk())status('Nessun nuovo F24');
   renderF24();
 }
+async function f24View(rec,btn){
+  var w=null;try{w=window.open('','_blank')}catch(e){}
+  var t0=btn.textContent;btn.disabled=true;btn.textContent='Apro il PDF\u2026';
+  try{
+    await window.__gconnect();var mc=await claude.use('mcp');
+    var m=await mc.callTool('Gmail','get_message',{messageId:rec.mid}),at=(m.payload&&m.payload.attachments)||[];
+    var z=at.filter(function(a){return a.filename===rec.file})[0]||at.filter(function(a){return /pdf/i.test((a.mimeType||'')+(a.filename||''))})[0];
+    if(!z)throw {code:'noatt'};
+    var rs=await mc.callTool('Gmail','download_gmail_attachment',{messageId:rec.mid,attachmentId:z.id,filename:z.filename||'allegato.pdf',mimeType:z.mimeType||'application/pdf'});
+    var b64=findB64(rs.content,0);if(!b64)throw {code:'nofile'};
+    var bin=atob(b64.replace(/^.*base64,/,'').replace(/\s/g,'')),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+    var bl=new Blob([u],{type:'application/pdf'}),url=URL.createObjectURL(bl);
+    if(w){w.location.href=url+'#page='+(rec.page||1);status('PDF aperto in una nuova scheda (pagina '+(rec.page||1)+')')}
+    else{var d=await claude.use('downloads');await d.save({filename:z.filename||'F24.pdf',data:bl});status('PDF scaricato: cerca la pagina '+(rec.page||1))}
+  }catch(e){try{if(w)w.close()}catch(x){}var c=e&&e.code;status(c==='needs_reauth'?'Gmail non collegato: premi Collega Gmail in alto':c==='noatt'?'Non trovo pi\u00f9 l\u2019allegato nell\u2019email':'Non riesco ad aprire il PDF ('+(c||'errore')+')')}
+  btn.disabled=false;btn.textContent=t0;
+}
 function renderF24(){
   var V=$('f24v');if(!V)return;f24Split();V.textContent='';
   var list=f24s.filter(function(r){return !r.gone}).sort(function(a,b){return (a.paid-b.paid)||(a.paid?b.due.localeCompare(a.due):a.due.localeCompare(b.due))});
@@ -750,6 +772,7 @@ function renderF24(){
     del.onclick=function(){askConfirm('Togliere questo F24?',['Verranno tolte anche le spese collegate (Tasse). L\u2019app ricorder\u00e0 che l\u2019hai tolto e non lo rimetter\u00e0.'],function(){entries=entries.filter(function(e){return !(e.src&&e.src.indexOf(rec.id+'#')===0)});rec.gone=true;save();render();status('F24 tolto dall\u2019elenco: non verr\u00e0 riletto')})};
     hd.appendChild(del);c.appendChild(hd);
     var sb=mk('div','hint',(rec.subj||rec.file)+(rec.parts>1?' \u00b7 F24 '+rec.part+' di '+rec.parts:'')+(rec.nodue?' · scadenza non indicata: uso la data dell’email':''));sb.style.margin='4px 0 6px';c.appendChild(sb);
+    if(window.__gconnect&&rec.mid){var vb=mk('button','','Vedi il PDF originale (pagina '+(rec.page||rec.part||1)+')');vb.style.cssText='display:block;width:100%;margin:0 0 6px';vb.onclick=function(){f24View(rec,vb)};c.appendChild(vb)}
     rec.mods.forEach(function(m,mi){
       if(rec.mods.length>1){var mh=mk('div','k','Modello '+(mi+1));mh.style.marginTop='8px';c.appendChild(mh)}
       m.rows.forEach(function(r){
