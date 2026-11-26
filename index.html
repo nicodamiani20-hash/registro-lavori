@@ -228,6 +228,12 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 body .brand h1{flex:1;text-align:center!important;padding:0!important;font-size:min(26px,5.6vw)!important;white-space:nowrap}
 body.v-pc .brand h1{font-size:30px!important}
 body .nav b{text-align:center}
+.unpc>.card{break-inside:avoid}
+body.v-pc #unp{display:block}
+body.v-pc .unptop{align-items:start;display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+body.v-pc .unptop>.card{margin-bottom:0}
+body.v-pc .unpc{column-width:380px;column-gap:16px}
+body.v-pc .unpc>.card{margin-bottom:16px;display:inline-block;width:100%}
 </style>
 </head>
 <body>
@@ -1525,14 +1531,14 @@ function renderUnpaid(){
   var U=$('unp');U.textContent='';
   var allU=entries.filter(function(e){return e.t==='lavoro'&&!e.p}),uy={};allU.forEach(function(e){uy[e.d.slice(0,4)]=1});
   if(usel!=='all'&&!uy[usel])usel='all';
-  var fc=mk('div','card'),fs=mk('select');fs.style.margin='0';
+  var TW=mk('div','unptop'),CW=mk('div','unpc'),fc=mk('div','card'),fs=mk('select');fs.style.margin='0';
   var fo=mk('option','','Tutti gli anni');fo.value='all';fs.appendChild(fo);
   Object.keys(uy).sort().reverse().forEach(function(y){var o=mk('option','','Anno '+y);o.value=y;fs.appendChild(o)});
-  fs.value=usel;fs.onchange=function(){usel=this.value;armed=null;renderUnpaid()};fc.appendChild(fs);U.appendChild(fc);
+  fs.value=usel;fs.onchange=function(){usel=this.value;armed=null;renderUnpaid()};fc.appendChild(fs);TW.appendChild(fc);U.appendChild(TW);
   var list=allU.filter(function(e){return usel==='all'||e.d.slice(0,4)===usel}).sort(function(a,b){return a.d.localeCompare(b.d)});
   var tot=list.reduce(function(a,e){return a+owed(e)},0);
   var top=mk('div','card');top.appendChild(mk('div','k','Giornate non ancora pagate'+(usel==='all'?'':' \u00b7 '+usel)));
-  var g=mk('div','grid');stat(g,'Da incassare',eur.format(tot),'out');stat(g,'Giornate',String(list.length));top.appendChild(g);U.appendChild(top);
+  var g=mk('div','grid');stat(g,'Da incassare',eur.format(tot),'out');stat(g,'Giornate',String(list.length));top.appendChild(g);TW.appendChild(top);U.appendChild(CW);
   if(!list.length){U.appendChild(mk('div','card empty','Tutte le giornate risultano pagate.'));return}
   var by={},order=[];
   list.forEach(function(e){var k=e.c||0;if(!by[k]){by[k]=[];order.push(k)}by[k].push(e)});
@@ -1550,8 +1556,8 @@ function renderUnpaid(){
     var fd=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})};
     gl.forEach(function(g){
       var gr=g.rs,e0=gr[0],r=mk('div','it'),d=mk('span','d');
-      d.appendChild(document.createTextNode(gr.length>1?fd(e0.d)+' \u2013 '+fd(gr[gr.length-1].d)+' \u00b7 '+gr.length+' gg':fd(e0.d)));
-      if((e0.n||'').trim()){var ds=mk('div','',e0.n.trim());ds.style.cssText='font-size:13px;color:var(--mut);margin-top:2px';d.appendChild(ds)}
+      d.appendChild(document.createTextNode(gr.length>1?fd(e0.d)+' \u2013 '+fd(gr[gr.length-1].d):fd(e0.d)));
+      if(gr.length>1||(e0.n||'').trim()){var ds=mk('div','',(gr.length>1?gr.length+' giorni'+((e0.n||'').trim()?' \u00b7 ':''):'')+(e0.n||'').trim());ds.style.cssText='font-size:13px;color:var(--mut);margin-top:2px';d.appendChild(ds)}
       var a=mk('b','',eur.format(gr.reduce(function(t,e){return t+owed(e)},0))),bt=mk('button','','Pagata');
       bt.onclick=function(){gr.forEach(function(e){e.p=true});save();render();status(gr.length>1?gr.length+' giornate segnate come pagate':'Giornata segnata come pagata')};
       r.appendChild(d);r.appendChild(a);r.appendChild(bt);card.appendChild(r);
@@ -1561,7 +1567,7 @@ function renderUnpaid(){
       if(armed===k){rows.forEach(function(e){e.p=true});armed=null;save();render();status(rows.length+' giornate segnate come pagate');return}
       armed=k;renderUnpaid();setTimeout(function(){if(armed===k){armed=null;renderUnpaid()}},4000);
     };
-    card.appendChild(all);U.appendChild(card);
+    card.appendChild(all);CW.appendChild(card);
   });
 }
 function renderImp(){
