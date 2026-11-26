@@ -329,7 +329,7 @@ body.v-pc .nav button{width:42px;height:42px;font-size:28px!important;line-heigh
     <div class="scroll"><table id="rx"></table></div>
     <div class="v" id="rtot" style="margin-top:10px"></div>
     <div class="row"><button class="pri" id="rprev">Anteprima</button><button class="pri" id="rpdf">Scarica PDF</button></div>
-    <div class="row"><button class="pri" id="rsend">Invia per email</button></div>
+    <div class="row"><button class="pri" id="rsend">Invia per email</button><button id="rwa">WhatsApp</button></div>
     <div class="row"><button class="pri" id="rdprev">Solo date: anteprima</button><button class="pri" id="rdpdf">Solo date: PDF</button></div>
   </div>
 </section>
@@ -574,6 +574,7 @@ function renderClients(){
     ei.type='email';ei.placeholder='Email';ei.value=c.email||'';ki.type='number';ki.step='0.01';ki.min='0';ki.placeholder='€/km';ki.value=c.kmr||'';
     ei.onchange=ki.onchange=function(){c.email=ei.value.trim();c.kmr=Math.round((parseFloat(ki.value)||0)*1000)/1000;save();hd();status('Salvato')};
     sr.appendChild(ei);sr.appendChild(ki);w.appendChild(r);w.appendChild(sr);
+    var tr2=mk('div','row'),ti=mk('input');ti.type='tel';ti.placeholder='Telefono WhatsApp (es. 333 1234567)';ti.value=c.tel||'';ti.maxLength=25;ti.setAttribute('inputmode','tel');ti.onchange=function(){c.tel=ti.value.trim();save();status('Salvato')};tr2.appendChild(ti);w.appendChild(tr2);
     var nr=mk('div','row'),ni=mk('input'),ci=mk('input');
     ni.type='text';ni.maxLength=60;ni.placeholder='Nome cliente';ni.value=c.name;ci.type='color';ci.value=/^#[0-9a-f]{6}$/i.test(c.color)?c.color:'#888888';ci.style.cssText='width:56px;padding:2px;flex:0 0 56px';ci.setAttribute('aria-label','Colore');
     ni.onchange=ci.onchange=function(){var nm=ni.value.trim();if(!nm){status('Inserisci un nome');ni.value=c.name;return}if(clients.some(function(y){return y.id!==c.id&&y.name.toLowerCase()===nm.toLowerCase()})){status('Esiste già un cliente con questo nome');ni.value=c.name;return}c.name=nm;c.color=ci.value;dot.style.background=c.color;save();hd();status('Salvato')};
@@ -711,6 +712,39 @@ $('rpdf').onclick=async function(){
   var fn='Rendiconto-'+r.c.name.replace(/[^A-Za-z0-9]+/g,'-')+'-'+rtag()+'.pdf';
   try{var dl=await claude.use('downloads');if(dl)await dl.save({filename:fn,data:doc.output('arraybuffer')});else doc.save(fn);status('PDF pronto')}catch(e){status('Download non riuscito: '+((e&&e.message)||e))}
 };
+/*WA*/function waNum(t){
+  var d=String(t||'').replace(/[^\d+]/g,'');if(!d)return '';
+  var plus=d.charAt(0)==='+';d=d.replace(/\D/g,'');
+  if(d.indexOf('00')===0)d=d.slice(2);else if(!plus){if(d.charAt(0)==='3'&&d.length>=9&&d.length<=10)d='39'+d;else if(d.charAt(0)==='0'&&d.length>=6&&d.length<=11)d='39'+d}
+  return d.length>=10&&d.length<=15?d:''}
+function waGreet(){return (new Date().getHours()<14?'Buongiorno':'Buonasera')+','}
+function waOpen(c,text){
+  var go=function(){var n=waNum(c.tel);if(!n){status('Numero non valido');return}window.open('https://wa.me/'+n+'?text='+encodeURIComponent(text),'_blank')};
+  if(waNum(c.tel)){go();return}
+  var o=$('cfm');if(!o){o=mk('div');o.id='cfm';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(o)}
+  o.textContent='';var cd=mk('div','card');cd.style.cssText='width:100%;max-width:360px';
+  cd.appendChild(mk('div','k','Telefono di '+c.name));cd.appendChild(mk('div','hint','Manca il numero WhatsApp: scrivilo qui, verrà salvato nella scheda Clienti.'));
+  var ti=document.createElement('input');ti.type='tel';ti.placeholder='es. 333 1234567';ti.style.cssText='font-size:18px;padding:14px;margin:10px 0';ti.setAttribute('inputmode','tel');cd.appendChild(ti);
+  var ok=mk('button','pri','Salva e apri WhatsApp');ok.style.cssText='display:block;width:100%;margin:6px 0';ok.onclick=function(){if(!waNum(ti.value)){status('Numero non valido');return}c.tel=ti.value.trim();save();o.style.display='none';go()};
+  var no=mk('button','','Annulla');no.style.cssText='display:block;width:100%;margin:6px 0';no.onclick=function(){o.style.display='none'};
+  cd.appendChild(ok);cd.appendChild(no);o.appendChild(cd);o.style.display='flex';setTimeout(function(){ti.focus()},50)}
+async function waRen(){
+  var r=rrows();if(!r.c){status('Scegli un cliente');return}if(!r.rows.length){status('Nessun lavoro da inviare');return}
+  var tit=rtitle().replace(/^Rendiconto\s*(mensile)?\s*-?\s*/i,''),tot=($('rtot').textContent||'').replace('Totale da fatturare: ','');
+  var text=waGreet()+'\n'+'ti invio il rendiconto'+(tit?' ('+tit+')':'')+'.\nTotale: '+tot+'\nCordiali saluti,\nNicolò Damiani';
+  var canF=false;try{canF=!!(navigator.canShare&&navigator.canShare({files:[new File([''],'a.pdf',{type:'application/pdf'})]}))}catch(e){}
+  var onlyMsg=function(){waOpen(r.c,text)};
+  var withPdf=async function(){
+    var got=null;window.__capture=function(o){got=o};
+    try{await $('rpdf').onclick()}catch(e){}window.__capture=null;
+    if(!got){status('PDF non creato');return}
+    var blob=got.data instanceof Blob?got.data:new Blob([got.data],{type:'application/pdf'}),file=new File([blob],got.filename,{type:'application/pdf'});
+    if(canF){try{await navigator.share({files:[file],text:text});return}catch(e){if(e&&e.name==='AbortError')return}}
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=got.filename;document.body.appendChild(a);a.click();a.remove();
+    status('PDF scaricato: allegalo nella chat WhatsApp');waOpen(r.c,text)};
+  askChoice('Invia su WhatsApp',[r.c.name+(r.c.tel?' · '+r.c.tel:'')],[
+    [canF?'PDF + messaggio (scegli la chat)':'Messaggio + scarica il PDF',withPdf],
+    ['Solo messaggio al numero del cliente',onlyMsg]])}
 function ab64(ab){var u=new Uint8Array(ab),bs='',CH=32768;for(var q=0;q<u.length;q+=CH)bs+=String.fromCharCode.apply(null,u.subarray(q,q+CH));return btoa(bs)}
 async function sendRen(){
   var r=rrows();if(!r.c){status('Scegli un cliente');return}
@@ -750,7 +784,8 @@ function rcompose(c,pdf,tit){
   };
 }
 $('rsend').onclick=function(){if(!window.__gconnect){status('Disponibile solo nell’app su GitHub');return}sendRen()};
-if(!window.__gconnect)$('rsend').parentNode.style.display='none';
+if(!window.__gconnect)$('rsend').style.display='none';
+$('rwa').onclick=waRen;
 
 function f24Ok(m){var t=m.rows.reduce(function(a,r){return a+(+r.imp||0)},0);return m.saldo!==null&&m.rows.length>0&&Math.abs(t-m.saldo)<0.011}
 function f24Sig(r){return r.mods.map(function(m){return m.rows.map(function(x){return x.cod+'|'+(x.anno||x.per)+'|'+(+x.imp).toFixed(2)}).sort().join(',')}).sort().join(';')}
@@ -1569,7 +1604,11 @@ function renderUnpaid(){
       if(armed===k){rows.forEach(function(e){e.p=true});armed=null;save();render();status(rows.length+' giornate segnate come pagate');return}
       armed=k;renderUnpaid();setTimeout(function(){if(armed===k){armed=null;renderUnpaid()}},4000);
     };
-    card.appendChild(all);CW.appendChild(card);
+    card.appendChild(all);
+    if(c){var wb=mk('button','','Sollecito WhatsApp');wb.style.cssText='display:block;width:100%;margin:8px 0 0';wb.onclick=function(){
+      var ln=gl.map(function(g){var a=g.rs,t=a.reduce(function(z,e){return z+owed(e)},0);return '- '+(a.length>1?fd(a[0].d)+' \u2013 '+fd(a[a.length-1].d)+' ('+a.length+' gg)':fd(a[0].d))+((a[0].n||'').trim()?' '+a[0].n.trim():'')+': '+eur.format(t)}).join('\n');
+      waOpen(c,waGreet()+'\nle ricordo che risultano ancora da saldare:\n'+ln+'\nTotale: '+eur.format(sub)+'\nGrazie e cordiali saluti,\nNicol\u00f2 Damiani')};card.appendChild(wb)}
+    CW.appendChild(card);
   });
 }
 function renderImp(){
