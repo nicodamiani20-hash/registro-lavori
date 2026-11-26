@@ -813,8 +813,9 @@ function renderF24(){
     });
     if(rec.mods.length>1){var tt=mk('div','',(rec.mods.every(f24Ok)?'':'Circa ')+'Totale: '+eur.format(f24Tot(rec)));tt.style.cssText='font-weight:700;margin-top:6px';c.appendChild(tt)}
     if(rec.sk)c.appendChild(mk('div','hint',rec.sk+(rec.sk===1?' voce era gi\u00e0 nelle spese (Tasse): non duplicata.':' voci erano gi\u00e0 nelle spese (Tasse): non duplicate.')));
-    if(rec.added)c.appendChild(mk('div','hint','Segnato nelle spese, categoria Tasse, alla data della scadenza.'));
-    else{var ab=mk('button','pri','Aggiungi alle spese (Tasse)');ab.style.marginTop='8px';ab.onclick=function(){var n=f24addSpese(rec);save();render();status(n+' spese aggiunte in Tasse')};c.appendChild(ab)}
+    if(rec.added){c.appendChild(mk('div','hint','Segnato nelle spese, categoria Tasse, alla data della scadenza.'));
+      var rb=mk('button','','Togli dalle spese');rb.style.cssText='display:block;width:100%;margin:8px 0 0';rb.onclick=function(){askConfirm('Togliere questo F24 dalle spese?',['Le spese collegate (Tasse) verranno eliminate. L\u2019F24 resta nell\u2019elenco e potrai riaggiungerlo.'],function(){entries=entries.filter(function(e){return !(e.src&&e.src.indexOf(rec.id+'#')===0)});rec.added=false;rec.mods.forEach(function(m){m.added=false});save();render();status('F24 tolto dalle spese')})};c.appendChild(rb)}
+    else{var ab=mk('button','pri','Aggiungi alle spese (Tasse)');ab.style.cssText='display:block;width:100%;margin:8px 0 0';ab.onclick=function(){var n=f24addSpese(rec);save();render();status(n?n+(n===1?' spesa aggiunta':' spese aggiunte')+' in Tasse':'Nessuna spesa aggiunta: le voci erano gi\u00e0 presenti')};c.appendChild(ab)}
     (rec.paid&&pdet?pdet:V).appendChild(c);
   });
   if(pdet)V.appendChild(pdet);
