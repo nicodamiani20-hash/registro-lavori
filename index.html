@@ -322,7 +322,8 @@ body.v-pc .nav button{width:42px;height:42px;font-size:28px!important;line-heigh
   <div class="card" id="rready"></div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;border-bottom:2px solid #3d8bff;padding-bottom:8px"><img id="rlogo" alt="" width="40" height="40"><div class="k" style="color:#3d8bff;margin:0">Rendiconto mensile dei lavori, per cliente</div></div>
-    <div class="row" style="margin-bottom:8px;align-items:end"><label style="font-size:12px;color:var(--mut)">Dal<input type="date" id="rfrom" style="margin:2px 0 0"></label><label style="font-size:12px;color:var(--mut)">Al<input type="date" id="rto" style="margin:2px 0 0"></label><button id="rclr" style="flex:none;width:auto;padding:8px 10px;font-size:12px;margin:0">Mese intero</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px"><label style="font-size:12px;color:var(--mut);min-width:0">Dal<input type="date" id="rfrom" style="margin:2px 0 0;width:100%;min-width:0;box-sizing:border-box"></label><label style="font-size:12px;color:var(--mut);min-width:0">Al<input type="date" id="rto" style="margin:2px 0 0;width:100%;min-width:0;box-sizing:border-box"></label></div>
+    <button id="rclr" style="display:block;width:100%;margin:0 0 10px;padding:12px;font-size:15px">Mese intero</button>
     <select id="rSel"></select>
     <div class="hint" id="rmail"></div>
     <div id="rgrp" style="margin:6px 0"></div>
