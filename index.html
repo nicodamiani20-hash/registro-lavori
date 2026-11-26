@@ -1542,11 +1542,19 @@ function renderUnpaid(){
     var card=mk('div','card'),hd=mk('div','it');hd.style.borderBottom='none';
     var nm=mk('b','');var dot=mk('i','dot');dot.style.background=c?c.color:'#888';nm.appendChild(dot);nm.appendChild(document.createTextNode(c?c.name:'Senza cliente'));
     hd.appendChild(nm);hd.appendChild(mk('b','out',eur.format(sub)));card.appendChild(hd);
+    var gl=[],cu=null;
     rows.forEach(function(e){
-      var r=mk('div','it'),d=mk('span','d',new Date(e.d+'T12:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}));
-      var a=mk('b','',eur.format(owed(e))),b=mk('button','','Pagata');
-      b.onclick=function(){setPaid(e,true,'Giornata segnata come pagata')};
-      r.appendChild(d);r.appendChild(a);r.appendChild(b);card.appendChild(r);
+      var kk=(e.n||'').trim().toLowerCase();
+      if(cu&&kk&&cu.k===kk&&Math.round((new Date(e.d+'T12:00:00')-new Date(cu.rs[cu.rs.length-1].d+'T12:00:00'))/86400000)<=1)cu.rs.push(e);
+      else{cu={k:kk,rs:[e]};gl.push(cu)}});
+    var fd=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})};
+    gl.forEach(function(g){
+      var gr=g.rs,e0=gr[0],r=mk('div','it'),d=mk('span','d');
+      d.appendChild(document.createTextNode(gr.length>1?fd(e0.d)+' \u2013 '+fd(gr[gr.length-1].d)+' \u00b7 '+gr.length+' gg':fd(e0.d)));
+      if((e0.n||'').trim()){var ds=mk('div','',e0.n.trim());ds.style.cssText='font-size:13px;color:var(--mut);margin-top:2px';d.appendChild(ds)}
+      var a=mk('b','',eur.format(gr.reduce(function(t,e){return t+owed(e)},0))),bt=mk('button','','Pagata');
+      bt.onclick=function(){gr.forEach(function(e){e.p=true});save();render();status(gr.length>1?gr.length+' giornate segnate come pagate':'Giornata segnata come pagata')};
+      r.appendChild(d);r.appendChild(a);r.appendChild(bt);card.appendChild(r);
     });
     var all=mk('button','pri',armed===k?'Conferma: segna tutte pagate':'Segna tutte pagate ('+rows.length+')');
     all.onclick=function(){
