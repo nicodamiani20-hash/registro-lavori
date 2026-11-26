@@ -54,19 +54,19 @@ body.mod .progress,body.mod .bar{border-radius:99px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>(function(){
 var SC='https://www.googleapis.com/auth/gmail.readonly',SS='https://www.googleapis.com/auth/gmail.send',B='https://gmail.googleapis.com/gmail/v1/users/me/';
-function tok(){try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');if(o&&o.exp>Date.now())return o.t}catch(e){}return null}
+function tok(){try{var o=JSON.parse(localStorage.getItem('gtok')||'null');if(o&&o.exp>Date.now())return o.t}catch(e){}return null}
 window.__gconnect=function(){
   if(tok())return Promise.resolve();
   var a=window.__gauth;if(!a||!a.currentUser)return Promise.reject({code:'nologin'});
   var p=new firebase.auth.GoogleAuthProvider();p.addScope(SC);p.addScope(SS);p.setCustomParameters({login_hint:a.currentUser.email||''});
   var u=a.currentUser,linked=u.providerData.some(function(x){return x.providerId==='google.com'});
   var pr=linked?u.reauthenticateWithPopup(p):u.linkWithPopup(p).catch(function(e){if(e&&e.code==='auth/provider-already-linked')return u.reauthenticateWithPopup(p);throw e});
-  return pr.then(function(r){var t=r&&r.credential&&r.credential.accessToken;if(!t)throw {code:'notoken'};try{sessionStorage.setItem('gtok',JSON.stringify({t:t,exp:Date.now()+3300000}))}catch(e){}});
+  return pr.then(function(r){var t=r&&r.credential&&r.credential.accessToken;if(!t)throw {code:'notoken'};try{localStorage.setItem('gtok',JSON.stringify({t:t,exp:Date.now()+3300000}))}catch(e){}});
 };
 async function g(path,o){
   var t=tok();if(!t)throw {code:'needs_reauth'};
   var r=await fetch(B+path,Object.assign({},o,{headers:Object.assign({Authorization:'Bearer '+t},(o&&o.headers)||{})}));
-  if(r.status===401||r.status===403){try{sessionStorage.removeItem('gtok')}catch(e){}throw {code:'needs_reauth'}}
+  if(r.status===401||r.status===403){try{localStorage.removeItem('gtok')}catch(e){}throw {code:'needs_reauth'}}
   if(!r.ok)throw {code:'http_'+r.status};
   return r.json();
 }
@@ -784,7 +784,7 @@ function f24Store(mm,z,pgs,due,revive){
 }
 function f24Seen(){try{return JSON.parse(localStorage.getItem('f24seen')||'[]')}catch(e){return []}}
 function f24SeenAdd(k){var a=f24Seen();if(a.indexOf(k)<0){a.push(k);try{localStorage.setItem('f24seen',JSON.stringify(a.slice(-300)))}catch(e){}}}
-function gTokOk(){try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');return !!(o&&o.exp>Date.now())}catch(e){return false}}
+function gTokOk(){try{var o=JSON.parse(localStorage.getItem('gtok')||'null');return !!(o&&o.exp>Date.now())}catch(e){return false}}
 function f24st(t){if(tab===11)status(t)}
 async function f24Scan(manual){
   if(window.__f24busy||!window.__gconnect)return;
@@ -1469,7 +1469,7 @@ function setBadge(n){var b=$('b8');if(!b)return;b.textContent='Email'+(n?' ('+n+
 function markSeen(th){var ids=(th||[]).map(function(t){return t.id}),old=seenGet()||[];seenSet(ids.concat(old.filter(function(x){return ids.indexOf(x)<0})));setBadge(0)}
 function mailWatch(){
   if(!window.__gconnect)return;
-  var ok=false;try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');ok=o&&o.exp>Date.now()}catch(x){}
+  var ok=false;try{var o=JSON.parse(localStorage.getItem('gtok')||'null');ok=o&&o.exp>Date.now()}catch(x){}
   if(!ok)return;
   claude.use('mcp').then(function(mc){return mc.callTool('Gmail','search_threads',{query:qC('14d'),pageSize:10})}).then(function(r){
     var ids=((r.payload&&r.payload.threads)||[]).map(function(t){return t.id}),seen=seenGet();
