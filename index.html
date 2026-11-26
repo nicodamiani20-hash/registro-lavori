@@ -665,12 +665,18 @@ function renderRecap(){
   if(!r.ex.length){var q0=mk('tr');q0.appendChild(mk('td','','—'));q0.appendChild(mk('td','','Nessuna spesa addebitata'));q0.appendChild(mk('td','',''));X.appendChild(q0)}
   $('rtot').textContent='Totale da fatturare: '+eur.format(b+s+k+xt);
 }
+var LHI=null;
+async function lhLoad(){
+  if(LHI)return LHI;
+  try{var r=await fetch('carta-intestata.jpg',{cache:'force-cache'});if(!r.ok)throw 0;var b=await r.blob();LHI=await new Promise(function(ok,ko){var f=new FileReader;f.onload=function(){ok(f.result)};f.onerror=ko;f.readAsDataURL(b)})}catch(e){LHI=null}
+  return LHI}
 $('rpdf').onclick=async function(){
   var r=rrows();if(!r.c){status('Scegli un cliente');return}
   if(!r.rows.length){status('Nessun lavoro per questo cliente nel mese');return}
   var J=window.jspdf;if(!J){status('Libreria PDF non caricata: controlla la connessione');return}
+  var LHD=await lhLoad();
   var doc=new J.jsPDF({unit:'mm',format:'a4'}),y=48;
-  function deco(){doc.addImage(LH_HEAD,'PNG',0,0,210,40);doc.addImage(LH_FOOT,'PNG',0,272,210,25)}
+  function deco(){if(LHD)doc.addImage(LHD,'JPEG',0,0,210,297,'LH','FAST');else{doc.addImage(LH_HEAD,'PNG',0,0,210,40);doc.addImage(LH_FOOT,'PNG',0,272,210,25)}}
   function np(){doc.addPage();deco();y=48}
   deco();
   doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text(rtitle(),15,y);y+=3;doc.setDrawColor(61,139,255);doc.setLineWidth(0.6);doc.line(15,y,195,y);doc.setLineWidth(0.2);doc.setDrawColor(0);y+=5;doc.setTextColor(0);
