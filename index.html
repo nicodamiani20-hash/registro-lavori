@@ -552,7 +552,7 @@ function renderCal(){
       cell.appendChild(ch);
       if(e.n&&!span&&!cont){var dd=mk('span','cdi',e.n);ch.appendChild(dd);if(jl&&!e.p)ch.firstChild.textContent=''}});
     if(ws.length>2)cell.appendChild(mk('span','chip','+'+(ws.length-2)));
-    if(entries.some(function(e){return e.d===ds&&e.t==='spesa'})){cell.style.position='relative';var bg=mk('span','cbag','\ud83d\udecd\ufe0f');bg.setAttribute('aria-label','Spese');bg.style.cssText='position:absolute;right:4px;bottom:2px;font-size:14px;line-height:1;z-index:4;pointer-events:none';cell.appendChild(bg)}
+    if(entries.some(function(e){return e.d===ds&&e.t==='spesa'})){cell.style.position='relative';var bg=mk('span','cbag');bg.setAttribute('aria-label','Spese');bg.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>';bg.style.cssText='position:absolute;right:5px;bottom:4px;line-height:0;z-index:4;pointer-events:none;color:#5b6070;opacity:.9';cell.appendChild(bg)}
     cell.onclick=(function(d){return function(){var now=Date.now(),dbl=window.__lt&&window.__lt.d===d&&now-window.__lt.t<450;window.__lt={d:d,t:now};sel=d;$('ps').value=d;$('pe').value=d;if(dbl){window.__lt=null;$('fab').click();setType('lavoro');return}render()}})(ds);
     C.appendChild(cell);
   }
