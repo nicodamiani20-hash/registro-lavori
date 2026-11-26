@@ -742,9 +742,7 @@ async function waRen(){
     if(canF){try{await navigator.share({files:[file],text:text});return}catch(e){if(e&&e.name==='AbortError')return}}
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=got.filename;document.body.appendChild(a);a.click();a.remove();
     status('PDF scaricato: allegalo nella chat WhatsApp');waOpen(r.c,text)};
-  askChoice('Invia su WhatsApp',[r.c.name+(r.c.tel?' · '+r.c.tel:'')],[
-    [canF?'PDF + messaggio (scegli la chat)':'Messaggio + scarica il PDF',withPdf],
-    ['Solo messaggio al numero del cliente',onlyMsg]])}
+  status('Preparo il PDF\u2026');await withPdf()}
 function ab64(ab){var u=new Uint8Array(ab),bs='',CH=32768;for(var q=0;q<u.length;q+=CH)bs+=String.fromCharCode.apply(null,u.subarray(q,q+CH));return btoa(bs)}
 async function sendRen(){
   var r=rrows();if(!r.c){status('Scegli un cliente');return}
