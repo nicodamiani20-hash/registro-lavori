@@ -13,7 +13,18 @@
 <meta name="apple-mobile-web-app-title" content="Registro Lavori">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>body.pal main{padding-top:12px}body.pal .brand{margin:6px 0 6px;padding-bottom:8px}body.pal .brand h1{font-size:26px;line-height:1.15}body.pal .tabs{padding-top:2px;padding-bottom:2px;margin-bottom:12px}body.pal .tabs button{padding:8px 12px}body.calv main{padding-top:12px}
-body.pal .brand{position:relative}#refbtn{position:absolute;right:0;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:20px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #refbtn{right:6px}
+body.pal .brand,.brand{position:relative}#refbtn{position:absolute;right:0;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:20px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #refbtn{right:6px}
+#vbtn{position:absolute;right:38px;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:18px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #vbtn{right:44px}
+#vmenu{position:absolute;right:0;top:100%;z-index:30;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:4px;min-width:150px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.35)}#vmenu button{display:block;width:100%;text-align:left;margin:0;padding:10px 12px;background:transparent;border:0;color:var(--tx);font-size:15px}#vmenu button.on{font-weight:700}
+body.pal .brand h1{padding-right:76px}
+body.v-pc main{max-width:1240px;padding:20px 32px}
+body.v-pc .brand h1{font-size:30px}
+body.v-pc .tabs button{font-size:15px;padding:10px 16px}
+body.v-pc .card{padding:18px}
+body.v-pc .cell{min-height:108px}
+body.v-pc #sp,body.v-pc #dash,body.v-pc #unp,body.v-pc #tax,body.v-pc #f24v,body.v-pc #mailL,body.v-pc #rready{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
+body.v-pc #sp>.card,body.v-pc #dash>.card,body.v-pc #unp>.card,body.v-pc #tax>.card,body.v-pc #f24v>.card,body.v-pc #mailL>.card,body.v-pc #sp>div,body.v-pc #dash>div,body.v-pc #unp>div,body.v-pc #tax>div{margin-bottom:0}
+body.v-pc #f24v>details{grid-column:1/-1}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -191,7 +202,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 </head>
 <body>
 <main>
-<div class="brand"><h1>Registro Lavori</h1><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button></div>
+<div class="brand"><h1>Registro Lavori</h1><button id="vbtn" aria-label="Vista" title="Vista: telefono o PC">▯</button><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button><div id="vmenu"></div></div>
 <div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button></div>
 
 <div class="card" id="sumcard">
@@ -441,6 +452,22 @@ function addD(ds,n){var d=new Date(ds+'T12:00:00');d.setDate(d.getDate()+n);retu
 function fx(el){if(!el||el.nodeType!==1)return;var L=el.matches&&el.matches('input,textarea')?[el]:[];if(el.querySelectorAll)L=L.concat([].slice.call(el.querySelectorAll('input,textarea')));
 L.forEach(function(i){var t=(i.getAttribute('type')||'text').toLowerCase();if(t!=='text'&&t!=='search'&&i.tagName!=='TEXTAREA')return;i.setAttribute('spellcheck','true');i.setAttribute('autocorrect','on');i.setAttribute('autocapitalize','sentences');i.setAttribute('lang','it')})}
 fx(document.body);new MutationObserver(function(ms){ms.forEach(function(m){[].forEach.call(m.addedNodes,fx)})}).observe(document.body,{childList:true,subtree:true})}catch(e){}})();
+(function(){
+  var K='view_mode',IC={auto:'◐',ph:'▯',pc:'▭'},NM=[['auto','Automatico'],['ph','Telefono'],['pc','PC']];
+  function get(){try{var v=localStorage.getItem(K);if(v==='ph'||v==='pc')return v}catch(e){}return 'auto'}
+  function apply(){
+    var m=get(),pc=m==='pc'||(m==='auto'&&window.innerWidth>=900);
+    document.body.classList.toggle('v-pc',pc);
+    var b=$('vbtn');if(b){b.textContent=IC[m];b.title='Vista: '+NM.filter(function(x){return x[0]===m})[0][1]}
+  }
+  function menu(){
+    var M=$('vmenu');M.textContent='';var m=get();
+    NM.forEach(function(x){var b=document.createElement('button');b.textContent=(x[0]===m?'✓ ':'   ')+x[1];if(x[0]===m)b.className='on';b.onclick=function(){try{localStorage.setItem(K,x[0])}catch(e){}M.style.display='none';apply()};M.appendChild(b)});
+  }
+  $('vbtn').onclick=function(e){e.stopPropagation();var M=$('vmenu');if(M.style.display==='block'){M.style.display='none';return}menu();M.style.display='block'};
+  document.addEventListener('click',function(){$('vmenu').style.display='none'});
+  window.addEventListener('resize',apply);apply();
+})();
 $('refbtn').onclick=async function(){
   status('Aggiornamento in corso…');
   try{if('caches' in window){var ks=await caches.keys();await Promise.all(ks.map(function(k){return caches.delete(k)}))}}catch(e){}
