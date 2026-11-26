@@ -720,6 +720,7 @@ function f24Store(mm,z,pgs,due,revive){
 function f24Seen(){try{return JSON.parse(localStorage.getItem('f24seen')||'[]')}catch(e){return []}}
 function f24SeenAdd(k){var a=f24Seen();if(a.indexOf(k)<0){a.push(k);try{localStorage.setItem('f24seen',JSON.stringify(a.slice(-300)))}catch(e){}}}
 function gTokOk(){try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');return !!(o&&o.exp>Date.now())}catch(e){return false}}
+function f24st(t){if(tab===11)status(t)}
 async function f24Scan(manual){
   if(window.__f24busy||!window.__gconnect)return;
   f24Split();
@@ -742,20 +743,20 @@ async function f24Scan(manual){
           work++;
           var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
           try{
-            status('Leggo l’F24 del commercialista…');
-            var pgs=await f24Read(mm.id,z,function(x){status(x)}),st=f24Store(mm,z,pgs,due);
+            f24st('Leggo l’F24 del commercialista…');
+            var pgs=await f24Read(mm.id,z,function(x){f24st(x)}),st=f24Store(mm,z,pgs,due);
             if(st&&st.isNew){found+=st.recs.length;st.recs.forEach(function(r){tot+=f24Tot(r)})}else f24SeenAdd(key);
           }catch(e){if(e&&e.code==='libs'){fails=1;throw e}f24SeenAdd(key)}
         }
       }
     }
   }catch(e){
-    var c=e&&e.code;if(manual)status(c==='libs'?'Non riesco a caricare il lettore: controlla la connessione':c==='needs_reauth'?'Gmail non collegato: riprova e consenti':'Controllo non riuscito ('+(c||(e&&e.message)||'errore')+')');
+    var c=e&&e.code;if(manual)f24st(c==='libs'?'Non riesco a caricare il lettore: controlla la connessione':c==='needs_reauth'?'Gmail non collegato: riprova e consenti':'Controllo non riuscito ('+(c||(e&&e.message)||'errore')+')');
   }
   window.__f24busy=false;window.__f24last=new Date();
-  if(found){status(found===1?'Nuovo F24 letto: '+eur.format(tot):found+' nuovi F24 letti: '+eur.format(tot));
+  if(found){f24st(found===1?'Nuovo F24 letto: '+eur.format(tot):found+' nuovi F24 letti: '+eur.format(tot));
     if(tab!==11&&'Notification' in window&&Notification.permission==='granted'){try{new Notification('Nuovo F24 dal commercialista',{body:'Totale '+eur.format(tot)+' · aperto in F24'})}catch(x){}}
-  }else if(manual&&!fails&&gTokOk())status('Nessun nuovo F24');
+  }else if(manual&&!fails&&gTokOk())f24st('Nessun nuovo F24');
   renderF24();
 }
 async function f24View(rec,btn){
