@@ -25,6 +25,14 @@ body.v-pc .cell{min-height:108px}
 body.v-pc #sp,body.v-pc #dash,body.v-pc #unp,body.v-pc #tax,body.v-pc #f24v,body.v-pc #mailL,body.v-pc #rready{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
 body.v-pc #sp>.card,body.v-pc #dash>.card,body.v-pc #unp>.card,body.v-pc #tax>.card,body.v-pc #f24v>.card,body.v-pc #mailL>.card,body.v-pc #sp>div,body.v-pc #dash>div,body.v-pc #unp>div,body.v-pc #tax>div{margin-bottom:0}
 body.v-pc #f24v>details{grid-column:1/-1}
+#wz input[type=text],#wz input[type=number],#wz input[type=date]{font-size:18px;padding:16px;border-radius:14px;margin-bottom:12px}
+#wz .wbtn{display:block;width:100%;text-align:left;font-size:18px;padding:16px;margin:0 0 10px;border-radius:14px}
+#wz .wbtn.on{background:var(--ac);color:var(--ac2);border-color:var(--ac)}
+#wz .wq{font-size:20px;font-weight:700;margin:14px 0 14px}
+#wz .wprog{height:6px;border-radius:99px;background:var(--bd);overflow:hidden}#wz .wprog>i{display:block;height:100%;background:var(--ac);border-radius:99px;transition:width .2s}
+#wz .wnav{display:flex;gap:10px;margin-top:8px}#wz .wnav button{flex:1;margin:0;padding:16px;font-size:17px;border-radius:14px}#wz .wnav button.pri{flex:2;margin:0}
+#wz .ck{font-size:17px;padding:8px 0}#wz .ck input{width:24px;height:24px}
+#wz .wsum{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);font-size:16px}#wz .wsum b{text-align:right}
 body.mod{background:radial-gradient(900px 500px at 15% -10%,rgba(63,130,246,.13),transparent 60%),radial-gradient(700px 400px at 100% 0,rgba(63,130,246,.07),transparent 55%),var(--bg);background-attachment:fixed}
 body.pal.mod .card{border:1px solid rgba(255,255,255,.07);border-top:1px solid rgba(255,255,255,.07);border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015)),var(--card);box-shadow:0 3px 10px rgba(0,0,0,.16)}
 body.pal.mod .brand h1{font-weight:800;letter-spacing:.02em;text-transform:none;font-size:25px}
@@ -252,6 +260,7 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
     <input type="number" id="km" placeholder="Km percorsi (facoltativo)" inputmode="decimal" step="0.1" min="0" style="display:none">
     <button class="pri" id="add">Aggiungi attività</button>
   </div>
+  <div class="card wz" id="wz" style="display:none"></div>
   <div class="card" id="pcard" style="display:none">
     <div class="k" style="margin-bottom:8px">Aggiungi giornate di lavoro (singole o periodo)</div>
     <select id="pSel"></select>
@@ -977,10 +986,84 @@ function setPaid(x,v,msg){
     w.appendChild(loc);w.appendChild(bt);w.appendChild(hint);w.appendChild(home);w.appendChild(rl);
     before.parentNode.insertBefore(w,before);UIS.push({rt:rt,home:home,hint:hint});return w;
   }
+  window.__mkKmUI=mkUI;
   var k1=$('km'),k2=$('pkm');
   var w1=mkUI('',k1,k1);w1.style.display=k1.style.display;window.__kw1=w1;
   mkUI('p',k2,k2.previousElementSibling);
   var ph=mk('div','hint');
+})();
+/*WIZARD*/(function(){
+  var W=null,STEPS=['Cliente','Data','Descrizione del lavoro','Paga','Supplemento','Descrizione del supplemento','Luogo','Riepilogo'],OLD=['cwrap','date','desc','amt','sup','supn','km','add','kw','pcard'];
+  function reset(){var d=sel||today;W={step:0,c:0,multi:false,s:d,e:d,n:'',a:null,paid:false,sup:'',sn:'',loc:'',km:''}}
+  function hasSup(){return parseFloat(W.sup)>0}
+  function nxt(){W.step++;if(W.step===5&&!hasSup())W.step++}
+  function bck(){W.step--;if(W.step===5&&!hasSup())W.step--}
+  function days(){if(!W.multi)return [W.s];var o=[],d=new Date(W.s+'T12:00:00'),n=0;while(ymd(d)<=W.e&&n<366){o.push(ymd(d));d.setDate(d.getDate()+1);n++}return o}
+  function valid(){
+    if(W.step===0&&!cl(W.c)){status('Scegli un cliente');return false}
+    if(W.step===1){if(!W.s){status('Scegli la data');return false}if(W.multi&&(!W.e||W.e<W.s)){status('La data finale deve essere dopo l’iniziale');return false}}
+    if(W.step===3&&!(parseFloat(W.a)>=0)){status('Inserisci la paga per giorno');return false}
+    return true}
+  function save1(){
+    var c=cl(W.c),ds=days(),t=Date.now(),n=0,a=Math.round((parseFloat(W.a)||0)*100)/100,sp=Math.round((parseFloat(W.sup)||0)*100)/100,k=parseFloat(W.km)||0;
+    ds.forEach(function(d){
+      if(W.multi&&entries.some(function(x){return x.t==='lavoro'&&x.c===c.id&&x.d===d}))return;
+      var x={id:t+n,t:'lavoro',c:c.id,d:d,n:W.n.trim(),a:a,s:sp,sn:sp?W.sn.trim():'',p:!!W.paid};
+      if(k>0)x.k=k;if(W.loc.trim())x.loc=W.loc.trim();entries.push(x);n++});
+    if(!n){status('Giornate già presenti per questo cliente');return}
+    var first=ds[0];ov=false;month=first.slice(0,7);save();render();
+    status(n===1?'Lavoro aggiunto':n+' giornate aggiunte'+(k>0&&!c.kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''));reset();draw()}
+  function inp(type,val,ph,on,opt){var i=document.createElement('input');i.type=type;i.value=val==null?'':val;if(ph)i.placeholder=ph;if(opt){for(var k in opt)i.setAttribute(k,opt[k])}i.oninput=function(){on(i.value)};return i}
+  function draw(){
+    var Z=$('wz');if(!Z)return;Z.textContent='';if(!W)reset();
+    var pr=mk('div','wprog'),pi=document.createElement('i');pi.style.width=((W.step+1)/8*100)+'%';pr.appendChild(pi);
+    var lab=mk('div','hint','Passo '+(W.step+1)+' di 8');lab.style.margin='0 0 6px';Z.appendChild(lab);Z.appendChild(pr);
+    Z.appendChild(mk('div','wq',W.step===7?'Controlla e conferma':STEPS[W.step]==='Cliente'?'Per quale cliente?':STEPS[W.step]==='Data'?'Quando?':STEPS[W.step]==='Descrizione del lavoro'?'Che lavoro è?':STEPS[W.step]==='Paga'?'Quanto è la paga?':STEPS[W.step]==='Supplemento'?'C’è un supplemento?':STEPS[W.step]==='Descrizione del supplemento'?'Per cosa è il supplemento?':'Dove si svolge?'));
+    var f=null;
+    if(W.step===0){
+      if(!clients.length)Z.appendChild(mk('div','hint','Non hai ancora clienti: aggiungine uno nella scheda Clienti.'));
+      clients.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).forEach(function(c){
+        var b=mk('button','wbtn'+(W.c===c.id?' on':''));var d=mk('i','dot');d.style.background=c.color;b.appendChild(d);b.appendChild(document.createTextNode(' '+c.name+' · '+eur.format(c.rate)+'/giorno'));
+        b.onclick=function(){if(W.c!==c.id){W.c=c.id;W.a=c.rate}nxt();draw()};Z.appendChild(b)})
+    }else if(W.step===1){
+      var sg=mk('div','seg'),b1=mk('button',W.multi?'':'on','Un giorno'),b2=mk('button',W.multi?'on':'','Più giorni');sg.style.marginBottom='12px';
+      b1.onclick=function(){W.multi=false;draw()};b2.onclick=function(){W.multi=true;if(W.e<W.s)W.e=W.s;draw()};sg.appendChild(b1);sg.appendChild(b2);Z.appendChild(sg);
+      Z.appendChild(mk('div','k',W.multi?'Dal':'Giorno'));Z.appendChild(inp('date',W.s,'',function(v){W.s=v;if(W.e<v)W.e=v}));
+      if(W.multi){Z.appendChild(mk('div','k','Al'));var ei=inp('date',W.e,'',function(v){W.e=v});Z.appendChild(ei);var h=mk('div','hint',days().length+' giorni (sabato e domenica compresi)');Z.appendChild(h);var upd=function(){h.textContent=(W.e>=W.s?days().length+' giorni':'Controlla le date')+' (sabato e domenica compresi)'};Z.querySelectorAll('input[type=date]').forEach(function(x){x.addEventListener('input',upd)})}
+    }else if(W.step===2){f=inp('text',W.n,'es. montaggio palco',function(v){W.n=v},{maxlength:120});Z.appendChild(f);Z.appendChild(mk('div','hint','Facoltativa: puoi andare avanti senza scrivere nulla.'))
+    }else if(W.step===3){
+      Z.appendChild(mk('div','k','Importo per giorno (€)'));f=inp('number',W.a,'',function(v){W.a=v},{inputmode:'decimal',step:'0.01',min:'0'});Z.appendChild(f);
+      var c=cl(W.c);if(c)Z.appendChild(mk('div','hint','Tariffa base del cliente: '+eur.format(c.rate)+'. Puoi cambiarla per questo lavoro.'));
+      var pl=document.createElement('label');pl.className='ck';var pc=document.createElement('input');pc.type='checkbox';pc.checked=!!W.paid;pc.onchange=function(){W.paid=pc.checked};pl.appendChild(pc);pl.appendChild(document.createTextNode('Giornate già pagate'));Z.appendChild(pl)
+    }else if(W.step===4){Z.appendChild(mk('div','k','Importo per giorno (€)'));f=inp('number',W.sup,'0',function(v){W.sup=v},{inputmode:'decimal',step:'0.01',min:'0'});Z.appendChild(f);Z.appendChild(mk('div','hint','Facoltativo: lascia vuoto se non c’è.'))
+    }else if(W.step===5){f=inp('text',W.sn,'es. trasferta',function(v){W.sn=v},{maxlength:80});Z.appendChild(f)
+    }else if(W.step===6){
+      var ki=inp('number',W.km,'Km totali',function(v){W.km=v},{inputmode:'decimal',step:'0.1',min:'0'});ki.addEventListener('change',function(){W.km=ki.value});
+      var kl=mk('div','k','Km percorsi (calcolati da soli, modificabili)');Z.appendChild(kl);Z.appendChild(ki);
+      if(window.__mkKmUI){var w=window.__mkKmUI('w',ki,kl);var li=w.querySelector('input[type=text]');li.value=W.loc;li.oninput=function(){W.loc=li.value};f=li}
+    }else{
+      var c2=cl(W.c),ds=days(),a=parseFloat(W.a)||0,sp=parseFloat(W.sup)||0,k=parseFloat(W.km)||0;
+      function row(l,v){var r=mk('div','wsum');r.appendChild(mk('span','',l));r.appendChild(mk('b','',v));Z.appendChild(r)}
+      row('Cliente',c2?c2.name:'-');row('Giorni',ds.length===1?fdm(ds[0]):ds.length+' giorni, dal '+fdm(ds[0])+' al '+fdm(ds[ds.length-1]));
+      row('Lavoro',W.n.trim()||'-');row('Paga per giorno',eur.format(a)+(W.paid?' · già pagata':''));
+      if(sp>0)row('Supplemento',eur.format(sp)+(W.sn.trim()?' · '+W.sn.trim():''));
+      if(W.loc.trim()||k>0)row('Luogo',(W.loc.trim()||'-')+(k>0?' · '+k+' km':''));
+      row('Totale',eur.format((a+sp)*ds.length+(c2&&c2.kmr?Math.round(k*c2.kmr*100)/100*ds.length:0)))
+    }
+    if(W.step>0||true){var nv=mk('div','wnav');
+      if(W.step>0){var bb=mk('button','','Indietro');bb.onclick=function(){bck();draw()};nv.appendChild(bb)}
+      if(W.step>0){var nb=mk('button','pri',W.step===7?'Aggiungi lavoro':(W.step===2||W.step===4)&&!(W.step===2?W.n:W.sup)?'Salta':'Avanti');
+        nb.onclick=function(){if(!valid())return;if(W.step===7)save1();else{nxt();draw()}};nv.appendChild(nb)}
+      Z.appendChild(nv)}
+    if(f){f.onkeydown=function(e){if(e.key==='Enter'&&W.step!==6){e.preventDefault();if(valid()){nxt();draw()}}};setTimeout(function(){try{f.focus()}catch(e){}},50)}
+  }
+  function vis(){
+    var l=type==='lavoro';$('wz').style.display=l?'':'none';
+    if(l){OLD.forEach(function(id){var e=$(id);if(e)e.style.display='none'});draw()}else{['date','desc','amt','add'].forEach(function(id){$(id).style.display=''})}
+  }
+  var st=setType;setType=function(t){st(t);vis()};
+  $('fab').addEventListener('click',function(){reset();vis()});
+  window.__wzVis=vis;
 })();
 function askConfirm(title,lines,go){
   var o=$('cfm');if(!o){o=mk('div');o.id='cfm';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(o)}
