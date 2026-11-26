@@ -225,6 +225,11 @@ body.pal .brand h1{font-size:28px;font-weight:800;letter-spacing:.5px;text-trans
 #toast{display:none;position:fixed;left:50%;transform:translateX(-50%);top:calc(12px + env(safe-area-inset-top,0px));background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20;max-width:90%;text-align:center}
 </style>
 <style>body,button,input,select,textarea,h1{font-family:'Coolvetica',system-ui,-apple-system,'Segoe UI',sans-serif!important}
+body .brand{padding-top:40px!important}
+body .brand h1{font-size:clamp(28px,9.5vw,40px)!important;text-align:center!important;padding:0!important;line-height:1.1!important;white-space:nowrap}
+body.v-pc .brand h1{font-size:46px!important}
+body #vbtn,body #refbtn{top:0!important;transform:none!important}
+body .nav b{font-size:26px!important}
 </style>
 </head>
 <body>
