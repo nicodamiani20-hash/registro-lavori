@@ -649,25 +649,48 @@ function f24addSpese(rec,onlyOk){
   })});
   rec.added=rec.mods.every(function(m){return m.added});return n;
 }
-function f24Store(mm,z,pgs,due,revive){
-  var key=mm.id+'_'+String(z.id).slice(-12),ex=f24s.filter(function(r){return r.id===key})[0];
-  if(ex){if(ex.gone&&revive){ex.gone=false;ex.added=false;ex.mods.forEach(function(m){m.added=false});var n0=f24addSpese(ex,true);save();render();return {rec:ex,isNew:true,n:n0}}return {rec:ex,isNew:false,n:0}}
-  var ok=pgs.filter(function(p){return p.rows.length||p.saldo!==null});if(!ok.length)return null;
-  var md=String(mm.date||'').slice(0,10)||today;
-  var rec={id:key,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:ok.map(function(p){return {rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}}),paid:false,pd:'',added:false};
-  rec.ok=rec.mods.every(f24Ok);
-  var sg=f24Sig(rec),dup=f24s.filter(function(x){return f24Sig(x)===sg||(x.due===rec.due&&Math.abs(f24Tot(x)-f24Tot(rec))<0.011)})[0];
-  if(dup)return {rec:dup,isNew:false,n:0,dup:true};
-  f24s.push(rec);
-  var n=f24addSpese(rec,true);
-  save();render();return {rec:rec,isNew:true,n:n};
+function f24Own(base){return f24s.filter(function(r){return r.id===base||r.id.indexOf(base+'_')===0})}
+function f24Split(){
+  var ch=false;
+  f24s.slice().forEach(function(rec){
+    if(!rec.mods||rec.mods.length<2)return;ch=true;
+    var old=rec.id,k=rec.mods.length;
+    rec.mods.forEach(function(m,mi){
+      var nid=old+'_'+(mi+1);
+      entries.forEach(function(e){if(e.src&&e.src.indexOf(old+'#'+mi+'.')===0)e.src=nid+'#0.'+e.src.split('.').pop()});
+      if(!f24s.some(function(x){return x.id===nid})){var n2=JSON.parse(JSON.stringify(rec));n2.id=nid;n2.mods=[m];n2.part=mi+1;n2.parts=k;n2.added=!!m.added;n2.ok=f24Ok(m);f24s.push(n2)}
+    });
+    f24s=f24s.filter(function(x){return x.id!==old});
+  });
+  if(ch)save();
 }
-
+function f24Store(mm,z,pgs,due,revive){
+  f24Split();
+  var base=mm.id+'_'+String(z.id).slice(-12),mine=f24Own(base);
+  if(mine.length){
+    var rv=[],n0=0;
+    if(revive)mine.forEach(function(r){if(r.gone){r.gone=false;r.added=false;r.mods.forEach(function(m){m.added=false});n0+=f24addSpese(r,true);rv.push(r)}});
+    if(rv.length){save();render();return {rec:rv[0],recs:rv,isNew:true,n:n0,count:rv.length}}
+    return {rec:mine[0],recs:[],isNew:false,n:0}
+  }
+  var ok=pgs.filter(function(p){return p.rows.length||p.saldo!==null});if(!ok.length)return null;
+  var md=String(mm.date||'').slice(0,10)||today,recs=[],n=0,dupRec=null;
+  ok.forEach(function(p,ix){
+    var rec={id:base+'_'+(ix+1),part:ix+1,parts:ok.length,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:[{rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}],paid:false,pd:'',added:false};
+    rec.ok=rec.mods.every(f24Ok);
+    var sg=f24Sig(rec),dup=f24s.filter(function(x){return x.id.indexOf(base)!==0&&(f24Sig(x)===sg||(x.due===rec.due&&Math.abs(f24Tot(x)-f24Tot(rec))<0.011))})[0];
+    if(dup){dupRec=dup;return}
+    f24s.push(rec);recs.push(rec);n+=f24addSpese(rec,true);
+  });
+  if(!recs.length)return {rec:dupRec,recs:[],isNew:false,n:0,dup:true};
+  save();render();return {rec:recs[0],recs:recs,isNew:true,n:n,count:recs.length};
+}
 function f24Seen(){try{return JSON.parse(localStorage.getItem('f24seen')||'[]')}catch(e){return []}}
 function f24SeenAdd(k){var a=f24Seen();if(a.indexOf(k)<0){a.push(k);try{localStorage.setItem('f24seen',JSON.stringify(a.slice(-300)))}catch(e){}}}
 function gTokOk(){try{var o=JSON.parse(sessionStorage.getItem('gtok')||'null');return !!(o&&o.exp>Date.now())}catch(e){return false}}
 async function f24Scan(manual){
   if(window.__f24busy||!window.__gconnect)return;
+  f24Split();
   window.__f24busy=true;if(manual)renderF24();
   var found=0,tot=0,fails=0;
   try{
@@ -681,7 +704,7 @@ async function f24Scan(manual){
         var mm=ms[j],zs=(mm.attachments||[]).filter(function(z){return /pdf/i.test((z.mimeType||'')+(z.filename||''))});
         for(var q=0;q<zs.length&&work<3;q++){
           var z=zs[q],key=mm.id+'_'+String(z.id).slice(-12);
-          if(f24s.some(function(r){return r.id===key})||f24Seen().indexOf(key)>=0)continue;
+          if(f24Own(key).length||f24Seen().indexOf(key)>=0)continue;
           var ctx=(mm.subject||'')+' '+(z.filename||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,400);
           if(!/f24|inps|inail|bollo|scad|acconto|saldo|imposta/i.test(ctx)){f24SeenAdd(key);continue}
           work++;
@@ -689,7 +712,7 @@ async function f24Scan(manual){
           try{
             status('Leggo l’F24 del commercialista…');
             var pgs=await f24Read(mm.id,z,function(x){status(x)}),st=f24Store(mm,z,pgs,due);
-            if(st&&st.isNew){found++;tot+=f24Tot(st.rec)}else f24SeenAdd(key);
+            if(st&&st.isNew){found+=st.recs.length;st.recs.forEach(function(r){tot+=f24Tot(r)})}else f24SeenAdd(key);
           }catch(e){if(e&&e.code==='libs'){fails=1;throw e}f24SeenAdd(key)}
         }
       }
@@ -704,7 +727,7 @@ async function f24Scan(manual){
   renderF24();
 }
 function renderF24(){
-  var V=$('f24v');if(!V)return;V.textContent='';
+  var V=$('f24v');if(!V)return;f24Split();V.textContent='';
   var list=f24s.filter(function(r){return !r.gone}).sort(function(a,b){return (a.paid-b.paid)||(a.paid?b.due.localeCompare(a.due):a.due.localeCompare(b.due))});
   var un=list.filter(function(r){return !r.paid}),ut=un.reduce(function(a,r){return a+f24Tot(r)},0);
   var top=mk('div','card');top.appendChild(mk('div','k','Da pagare'));var tv=mk('div','v',eur.format(ut));top.appendChild(tv);
@@ -726,7 +749,7 @@ function renderF24(){
     var del=mk('button','','Elimina');del.style.cssText='flex:none;padding:4px 10px;margin:0';
     del.onclick=function(){askConfirm('Togliere questo F24?',['Verranno tolte anche le spese collegate (Tasse). L\u2019app ricorder\u00e0 che l\u2019hai tolto e non lo rimetter\u00e0.'],function(){entries=entries.filter(function(e){return !(e.src&&e.src.indexOf(rec.id+'#')===0)});rec.gone=true;save();render();status('F24 tolto dall\u2019elenco: non verr\u00e0 riletto')})};
     hd.appendChild(del);c.appendChild(hd);
-    var sb=mk('div','hint',(rec.subj||rec.file)+(rec.nodue?' · scadenza non indicata: uso la data dell’email':''));sb.style.margin='4px 0 6px';c.appendChild(sb);
+    var sb=mk('div','hint',(rec.subj||rec.file)+(rec.parts>1?' \u00b7 F24 '+rec.part+' di '+rec.parts:'')+(rec.nodue?' · scadenza non indicata: uso la data dell’email':''));sb.style.margin='4px 0 6px';c.appendChild(sb);
     rec.mods.forEach(function(m,mi){
       if(rec.mods.length>1){var mh=mk('div','k','Modello '+(mi+1));mh.style.marginTop='8px';c.appendChild(mh)}
       m.rows.forEach(function(r){
@@ -1131,7 +1154,7 @@ async function loadMail(){
                   fb.disabled=true;var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
                   try{await window.__gconnect();var pgs=await f24Read(mm.id,z,function(x){fb.textContent=x});f24Show(pgs,due,fr);fb.textContent='Rileggi';
                     var st=f24Store(mm,z,pgs,due,true);
-                    if(st){var nt=mk('div','hint',st.isNew?('Salvato nella pagina F24'+(st.rec.added?' e '+st.n+' spese segnate in Tasse.':(st.n?' e '+st.n+' spese segnate in Tasse; per il resto controlla le cifre in F24.':'. Controlla le cifre prima di aggiungerle alle spese.'))):(st.dup?'Questo F24 \u00e8 gi\u00e0 nell\u2019elenco (letto da un\u2019altra email): non l\u2019ho duplicato.':'Gi\u00e0 presente nella pagina F24.'));nt.style.marginTop='6px';fr.appendChild(nt);var go=mk('button','','Apri F24');go.style.marginTop='6px';go.onclick=function(){tab=11;render();window.scrollTo(0,0)};fr.appendChild(go)}}
+                    if(st){var allA=st.isNew&&st.recs.every(function(r){return r.added});var nt=mk('div','hint',st.isNew?((st.count>1?'Salvati come '+st.count+' F24 separati nella pagina F24':'Salvato nella pagina F24')+(allA?' e '+st.n+' spese segnate in Tasse.':(st.n?' e '+st.n+' spese segnate in Tasse; per il resto controlla le cifre in F24.':'. Controlla le cifre prima di aggiungerle alle spese.'))):(st.dup?'Questo F24 \u00e8 gi\u00e0 nell\u2019elenco (letto da un\u2019altra email): non l\u2019ho duplicato.':'Gi\u00e0 presente nella pagina F24.'));nt.style.marginTop='6px';fr.appendChild(nt);var go=mk('button','','Apri F24');go.style.marginTop='6px';go.onclick=function(){tab=11;render();window.scrollTo(0,0)};fr.appendChild(go)}}
                   catch(e){var c=e&&e.code;fr.textContent='';fr.appendChild(mk('div','hint',c==='libs'?'Non riesco a caricare il lettore: controlla la connessione.':c==='needs_reauth'?'Premi Aggiorna email per ricollegare Gmail.':'Lettura non riuscita ('+(c||(e&&e.message)||'errore')+').'));fb.textContent='Leggi scadenza e importi'}
                   fb.disabled=false;
                 };
