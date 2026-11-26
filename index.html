@@ -1384,7 +1384,7 @@ async function loadMail(){
       if(!from||(mailF==='c'&&!isC)||(mailF==='o'&&(isC||!isClient(from))))return;
       if(mhGet().indexOf(t.id)>=0){hid++;return}
       shown++;
-      var card=mk('div','card'),top=mk('div','k',((m.addressDisplayNames&&m.addressDisplayNames[0]&&m.addressDisplayNames[0].displayName)||from)+(isC?' \u00b7 COMMERCIALISTA':''));
+      var card=mk('div','card mcard'),top=mk('div','k',((m.addressDisplayNames&&m.addressDisplayNames[0]&&m.addressDisplayNames[0].displayName)||from)+(isC?' \u00b7 COMMERCIALISTA':''));
       if(isC)card.style.borderLeft='3px solid var(--ac,#3b82f6)';
       var sub=mk('b','',m.subject||'(senza oggetto)');sub.style.display='block';sub.style.margin='4px 0';
       card.appendChild(top);card.appendChild(sub);
@@ -1392,6 +1392,7 @@ async function loadMail(){
       if(m.snippet){var sn=mk('div','hint');var tx=document.createElement('textarea');tx.innerHTML=m.snippet;sn.textContent=tx.value;card.appendChild(sn)}
       var row=mk('div','row');row.style.marginTop='8px';
       if(m.date||t.date){var dt=mk('b','',new Date(m.date||t.date).toLocaleString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}));dt.style.cssText='font-size:13px;margin-right:auto';row.appendChild(dt)}
+      card.dataset.tid=t.id;
       var hb=mk('button','','Nascondi');hb.style.cssText='margin:0 6px 0 0';hb.onclick=function(){askConfirm('Nascondere questa email?',['Non comparir\u00e0 pi\u00f9 in questa lista. Non viene eliminata da Gmail e gli F24 vengono letti comunque.'],function(){mhAdd(t.id);card.remove();status('Email nascosta')})};row.appendChild(hb);
       var rd=mk('button','pri','Leggi'),box=mk('div');box.style.cssText='display:none;margin-top:10px;white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.5';
       var opened=false;
@@ -1460,6 +1461,21 @@ async function loadMail(){
       card.appendChild(row);card.appendChild(box);L.appendChild(card);
     });
     h.textContent=shown?shown+(mailF==='c'?' email del commercialista (ultimo anno)':mailF==='o'?' email di lavoro (ultimo anno)':' email (ultimi 4 mesi)'):'Nessuna email trovata.';markSeen(th);
+    if(shown){
+      var bar=mk('div','card');bar.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:5';bar.className='card mbar';
+      var cards=function(){return [].slice.call(L.querySelectorAll('.mcard'))},sel2=function(){return cards().filter(function(c){return c.querySelector('.msel')&&c.querySelector('.msel').checked})};
+      function drawBar(){
+        bar.textContent='';
+        var on=!!window.__msel;
+        if(!on){var bs=mk('button','','Seleziona pi\u00f9 email');bs.style.margin='0';bs.onclick=function(){window.__msel=true;cards().forEach(addCk);drawBar()};bar.appendChild(bs);return}
+        var n=sel2().length,ba=mk('button','','Seleziona tutte');ba.style.margin='0';ba.onclick=function(){var all=sel2().length<cards().length;cards().forEach(function(c){c.querySelector('.msel').checked=all});drawBar()};
+        var bh=mk('button','pri','Nascondi selezionate ('+n+')');bh.style.margin='0';bh.disabled=!n;
+        bh.onclick=function(){var cs=sel2();askConfirm('Nascondere '+cs.length+(cs.length===1?' email?':' email?'),['Non compariranno pi\u00f9 in questa lista. Non vengono eliminate da Gmail e gli F24 vengono letti comunque.'],function(){cs.forEach(function(c){mhAdd(c.dataset.tid);c.remove()});window.__msel=false;cards().forEach(rmCk);drawBar();status(cs.length+(cs.length===1?' email nascosta':' email nascoste'))})};
+        var bf=mk('button','','Fine');bf.style.margin='0';bf.onclick=function(){window.__msel=false;cards().forEach(rmCk);drawBar()};
+        bar.appendChild(ba);bar.appendChild(bh);bar.appendChild(bf)}
+      function addCk(c){if(c.querySelector('.msel'))return;var l=document.createElement('label');l.className='mselw';l.style.cssText='display:flex;gap:10px;align-items:center;margin-bottom:6px;font-size:15px';var k=document.createElement('input');k.type='checkbox';k.className='msel';k.style.cssText='width:24px;height:24px;margin:0';k.onchange=drawBar;l.appendChild(k);l.appendChild(document.createTextNode('Seleziona'));c.insertBefore(l,c.firstChild)}
+      function rmCk(c){var l=c.querySelector('.mselw');if(l)l.remove()}
+      bar.style.gridColumn='1/-1';L.insertBefore(bar,L.firstChild);if(window.__msel)cards().forEach(addCk);drawBar()}
     if(hid){var rs=mk('button','','Mostra di nuovo le email nascoste ('+hid+')');rs.style.cssText='display:block;width:100%;margin:10px 0';rs.onclick=function(){try{localStorage.removeItem('mailhide')}catch(e){}loadMail()};L.appendChild(rs)}
     mailLoaded=true;
   }catch(e){
