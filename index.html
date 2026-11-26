@@ -24,7 +24,7 @@ body.v-pc .brand h1{font-size:30px}
 body.v-pc .tabs button{font-size:15px;padding:10px 16px}
 body.v-pc .card{padding:18px}
 body.v-pc .cell{min-height:108px}
-body.v-pc #sp,body.v-pc #dash,body.v-pc #unp,body.v-pc #tax,body.v-pc #f24v,body.v-pc #mailL,body.v-pc #rready{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
+body.v-pc #sp,body.v-pc #dash,body.v-pc #unp,body.v-pc #tax,body.v-pc #f24v,body.v-pc #mailL{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;align-items:start}
 body.v-pc #sp>.card,body.v-pc #dash>.card,body.v-pc #unp>.card,body.v-pc #tax>.card,body.v-pc #f24v>.card,body.v-pc #mailL>.card,body.v-pc #sp>div,body.v-pc #dash>div,body.v-pc #unp>div,body.v-pc #tax>div{margin-bottom:0}
 body.v-pc #f24v>details{grid-column:1/-1}
 #wz input[type=text],#wz input[type=number],#wz input[type=date]{font-size:18px;padding:16px;border-radius:14px;margin-bottom:12px}
@@ -236,7 +236,7 @@ body.v-pc .unpc{column-width:380px;column-gap:16px}
 body.v-pc .unpc>.card{margin-bottom:16px;display:inline-block;width:100%}
 body.v-pc .nav b{font-size:28px}
 body.v-pc .nav button{width:42px;height:42px;font-size:28px!important;line-height:1;padding:0;border-radius:14px}
-#rwa,#rwa:hover{background:#25d366!important;border-color:#25d366!important;color:#fff!important}
+#rwa,#rwa:hover,.wab,.wab:hover{background:#25d366!important;border-color:#25d366!important;color:#fff!important}
 #rdprev,#rdpdf,#rdprev:hover,#rdpdf:hover{background:#6366f1!important;border-color:#6366f1!important;color:#fff!important}
 </style>
 </head>
@@ -660,7 +660,8 @@ function renderReady(){
       var a=mk('button','pri','Anteprima');a.onclick=function(){go(showPreview)};
       var b=mk('button','pri','PDF');b.onclick=function(){go(function(){$('rpdf').onclick()})};
       var em=mk('button','pri','Email');em.onclick=function(){go(sendRen)};
-      row.appendChild(a);row.appendChild(b);if(window.__gconnect)row.appendChild(em);R.appendChild(row);
+      var wa=mk('button','pri wab','WhatsApp');wa.onclick=function(){go(waRen)};
+      row.appendChild(a);row.appendChild(b);if(window.__gconnect)row.appendChild(em);row.appendChild(wa);R.appendChild(row);
     });
   });
 }
