@@ -1018,6 +1018,7 @@ function setPaid(x,v,msg){
     var Z=$('wz');if(!Z)return;Z.textContent='';if(!W)reset();
     var pr=mk('div','wprog'),pi=document.createElement('i');pi.style.width=((W.step+1)/8*100)+'%';pr.appendChild(pi);
     var lab=mk('div','hint','Passo '+(W.step+1)+' di 8');lab.style.margin='0 0 6px';Z.appendChild(lab);Z.appendChild(pr);
+    var dd=days(),dl=mk('div','',dd.length>1?'\ud83d\udcc5 Dal '+fdm(dd[0])+' al '+fdm(dd[dd.length-1])+' ('+dd.length+' giorni)':'\ud83d\udcc5 '+(W.s?fdate(W.s):'Scegli la data'));dl.style.cssText='margin-top:12px;padding:10px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--bd);font-weight:700;font-size:16px';Z.appendChild(dl);
     Z.appendChild(mk('div','wq',W.step===7?'Controlla e conferma':STEPS[W.step]==='Cliente'?'Per quale cliente?':STEPS[W.step]==='Data'?'Quando?':STEPS[W.step]==='Descrizione del lavoro'?'Che lavoro è?':STEPS[W.step]==='Paga'?'Quanto è la paga?':STEPS[W.step]==='Supplemento'?'C’è un supplemento?':STEPS[W.step]==='Descrizione del supplemento'?'Per cosa è il supplemento?':'Dove si svolge?'));
     var f=null;
     if(W.step===0){
