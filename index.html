@@ -530,6 +530,19 @@ $('refbtn').onclick=async function(){
 };
 function sameW(ds,c,n){return !!c&&entries.some(function(e){return e.t==='lavoro'&&e.d===ds&&e.c===c&&(e.n||'')===(n||'')})}
 function hasW(ds,c){return !!c&&entries.some(function(e){return e.t==='lavoro'&&e.d===ds&&e.c===c})}
+/*TIP*/var TIP=null;
+function tipShow(e,ev){
+  if(!TIP){TIP=document.createElement('div');TIP.style.cssText='position:fixed;z-index:60;max-width:300px;padding:10px 12px;border-radius:12px;background:#1b1d24;color:#fff;border:1px solid rgba(255,255,255,.14);box-shadow:0 6px 18px rgba(0,0,0,.4);font-size:14px;line-height:1.35;pointer-events:none;display:none';document.body.appendChild(TIP)}
+  var c=e.c?cl(e.c):null,g=jobOf(e),f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})};
+  TIP.textContent='';
+  var t=document.createElement('div');t.style.fontWeight='700';t.textContent=(c?c.name:'Lavoro')+(e.p?' ✓':'');TIP.appendChild(t);
+  if((e.n||'').trim()){var d=document.createElement('div');d.textContent=e.n.trim();TIP.appendChild(d)}
+  var p=document.createElement('div');p.style.cssText='color:#9aa0b4;font-size:12px;margin-top:4px';p.textContent=g.length>1?f(g[0].d)+' – '+f(g[g.length-1].d)+' · '+g.length+' giorni':f(e.d);TIP.appendChild(p);
+  if(e.loc){var l=document.createElement('div');l.style.cssText='color:#9aa0b4;font-size:12px';l.textContent='📍 '+e.loc;TIP.appendChild(l)}
+  TIP.style.display='block';tipMove(ev)}
+function tipMove(ev){if(!TIP)return;var w=TIP.offsetWidth,h=TIP.offsetHeight,x=ev.clientX+14,y=ev.clientY+16;if(x+w>window.innerWidth-8)x=ev.clientX-w-14;if(y+h>window.innerHeight-8)y=ev.clientY-h-12;TIP.style.left=Math.max(8,x)+'px';TIP.style.top=Math.max(8,y)+'px'}
+function tipHide(){if(TIP)TIP.style.display='none'}
+document.addEventListener('scroll',tipHide,true);
 function renderCal(){
   var C=$('cal');C.textContent='';
   ['L','M','M','G','V','S','D'].forEach(function(h){C.appendChild(mk('div','h',h))});
@@ -549,6 +562,7 @@ function renderCal(){
       if(span){ch.style.position='relative';ch.style.zIndex='3';ch.style.width='calc('+len*100+'% + '+((len-1)*12)+'px)';ch.style.marginRight='0'}
       if(jl){ch.style.borderTopLeftRadius='0';ch.style.borderBottomLeftRadius='0';ch.style.marginLeft='-4px'}
       if(jr){ch.style.borderTopRightRadius='0';ch.style.borderBottomRightRadius='0';if(!span)ch.style.marginRight='-8px'}
+      ch.onmouseenter=function(ev){tipShow(e,ev)};ch.onmousemove=tipMove;ch.onmouseleave=tipHide;
       cell.appendChild(ch);
       if(e.n&&!span&&!cont){var dd=mk('span','cdi',e.n);ch.appendChild(dd);if(jl&&!e.p)ch.firstChild.textContent=''}});
     if(ws.length>2)cell.appendChild(mk('span','chip','+'+(ws.length-2)));
