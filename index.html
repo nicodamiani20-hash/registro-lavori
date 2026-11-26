@@ -649,9 +649,9 @@ function f24addSpese(rec,onlyOk){
   })});
   rec.added=rec.mods.every(function(m){return m.added});return n;
 }
-function f24Store(mm,z,pgs,due){
+function f24Store(mm,z,pgs,due,revive){
   var key=mm.id+'_'+String(z.id).slice(-12),ex=f24s.filter(function(r){return r.id===key})[0];
-  if(ex)return {rec:ex,isNew:false,n:0};
+  if(ex){if(ex.gone&&revive){ex.gone=false;ex.added=false;ex.mods.forEach(function(m){m.added=false});var n0=f24addSpese(ex,true);save();render();return {rec:ex,isNew:true,n:n0}}return {rec:ex,isNew:false,n:0}}
   var ok=pgs.filter(function(p){return p.rows.length||p.saldo!==null});if(!ok.length)return null;
   var md=String(mm.date||'').slice(0,10)||today;
   var rec={id:key,mid:mm.id,subj:mm.subject||'',file:z.filename||'',due:due||md,nodue:!due,mdate:md,mods:ok.map(function(p){return {rows:p.rows.map(function(r){return {sez:r.sez,cod:r.cod,cau:r.cau||'',anno:r.anno||'',per:r.per||'',imp:r.imp}}),saldo:p.saldo}}),paid:false,pd:'',added:false};
@@ -705,7 +705,7 @@ async function f24Scan(manual){
 }
 function renderF24(){
   var V=$('f24v');if(!V)return;V.textContent='';
-  var list=f24s.slice().sort(function(a,b){return (a.paid-b.paid)||(a.paid?b.due.localeCompare(a.due):a.due.localeCompare(b.due))});
+  var list=f24s.filter(function(r){return !r.gone}).sort(function(a,b){return (a.paid-b.paid)||(a.paid?b.due.localeCompare(a.due):a.due.localeCompare(b.due))});
   var un=list.filter(function(r){return !r.paid}),ut=un.reduce(function(a,r){return a+f24Tot(r)},0);
   var top=mk('div','card');top.appendChild(mk('div','k','Da pagare'));var tv=mk('div','v',eur.format(ut));top.appendChild(tv);
   top.appendChild(mk('div','hint',un.length?un.length+(un.length===1?' F24 non pagato':' F24 non pagati'):'Tutti gli F24 sono pagati'));
@@ -715,6 +715,8 @@ function renderF24(){
   }
   V.appendChild(top);
   if(!list.length){var e0=mk('div','card');e0.appendChild(mk('div','hint','Nessun F24 ancora. Apri una email del commercialista nella scheda Email e premi “Leggi scadenza e importi”: gli importi arrivano qui e nelle spese (Tasse).'));V.appendChild(e0)}
+  var paidN=list.filter(function(r){return r.paid}).length,pdet=null;
+  if(paidN){pdet=document.createElement('details');var sm=document.createElement('summary');sm.textContent='Pagati ('+paidN+')';sm.style.cssText='margin:12px 0 8px;cursor:pointer;font-weight:700';pdet.appendChild(sm);pdet.open=!!window.__f24open;pdet.ontoggle=function(){window.__f24open=pdet.open}}
   list.forEach(function(rec){
     var c=mk('div','card'),hd=mk('div','row');hd.style.cssText='align-items:center;gap:10px';
     var lb=document.createElement('label');lb.style.cssText='display:flex;gap:8px;align-items:center;font-size:15px;flex:1';
@@ -722,7 +724,7 @@ function renderF24(){
     cb.onchange=function(){rec.paid=cb.checked;rec.pd=rec.paid?today:'';save();render()};
     lb.appendChild(cb);var dl=dueLine(rec.due),dt=mk('b','',rec.paid?'Pagato'+(rec.pd?' il '+new Date(rec.pd+'T12:00:00').toLocaleDateString('it-IT'):''):dl.text);dt.style.color=(!rec.paid&&dl.urgent)?'#ff6b6b':'';lb.appendChild(dt);hd.appendChild(lb);
     var del=mk('button','','Elimina');del.style.cssText='flex:none;padding:4px 10px;margin:0';
-    del.onclick=function(){askConfirm('Eliminare questo F24?',['Verranno tolte anche le spese collegate (Tasse).'],function(){entries=entries.filter(function(e){return !(e.src&&e.src.indexOf(rec.id+'#')===0)});f24s=f24s.filter(function(x){return x.id!==rec.id});save();render()})};
+    del.onclick=function(){askConfirm('Togliere questo F24?',['Verranno tolte anche le spese collegate (Tasse). L\u2019app ricorder\u00e0 che l\u2019hai tolto e non lo rimetter\u00e0.'],function(){entries=entries.filter(function(e){return !(e.src&&e.src.indexOf(rec.id+'#')===0)});rec.gone=true;save();render();status('F24 tolto dall\u2019elenco: non verr\u00e0 riletto')})};
     hd.appendChild(del);c.appendChild(hd);
     var sb=mk('div','hint',(rec.subj||rec.file)+(rec.nodue?' · scadenza non indicata: uso la data dell’email':''));sb.style.margin='4px 0 6px';c.appendChild(sb);
     rec.mods.forEach(function(m,mi){
@@ -740,8 +742,9 @@ function renderF24(){
     if(rec.sk)c.appendChild(mk('div','hint',rec.sk+(rec.sk===1?' voce era gi\u00e0 nelle spese (Tasse): non duplicata.':' voci erano gi\u00e0 nelle spese (Tasse): non duplicate.')));
     if(rec.added)c.appendChild(mk('div','hint','Segnato nelle spese, categoria Tasse, alla data della scadenza.'));
     else{var ab=mk('button','pri','Aggiungi alle spese (Tasse)');ab.style.marginTop='8px';ab.onclick=function(){var n=f24addSpese(rec);save();render();status(n+' spese aggiunte in Tasse')};c.appendChild(ab)}
-    V.appendChild(c);
+    (rec.paid&&pdet?pdet:V).appendChild(c);
   });
+  if(pdet)V.appendChild(pdet);
 }
 function fillCat(){
   var s=$('cat'),v=s.value;s.textContent='';
@@ -1127,7 +1130,7 @@ async function loadMail(){
                 fb.onclick=async function(){
                   fb.disabled=true;var due=mailDue((mm.subject||'')+' '+(mm.plaintextBody||mm.snippet||'').slice(0,600),mm.date);
                   try{await window.__gconnect();var pgs=await f24Read(mm.id,z,function(x){fb.textContent=x});f24Show(pgs,due,fr);fb.textContent='Rileggi';
-                    var st=f24Store(mm,z,pgs,due);
+                    var st=f24Store(mm,z,pgs,due,true);
                     if(st){var nt=mk('div','hint',st.isNew?('Salvato nella pagina F24'+(st.rec.added?' e '+st.n+' spese segnate in Tasse.':(st.n?' e '+st.n+' spese segnate in Tasse; per il resto controlla le cifre in F24.':'. Controlla le cifre prima di aggiungerle alle spese.'))):(st.dup?'Questo F24 \u00e8 gi\u00e0 nell\u2019elenco (letto da un\u2019altra email): non l\u2019ho duplicato.':'Gi\u00e0 presente nella pagina F24.'));nt.style.marginTop='6px';fr.appendChild(nt);var go=mk('button','','Apri F24');go.style.marginTop='6px';go.onclick=function(){tab=11;render();window.scrollTo(0,0)};fr.appendChild(go)}}
                   catch(e){var c=e&&e.code;fr.textContent='';fr.appendChild(mk('div','hint',c==='libs'?'Non riesco a caricare il lettore: controlla la connessione.':c==='needs_reauth'?'Premi Aggiorna email per ricollegare Gmail.':'Lettura non riuscita ('+(c||(e&&e.message)||'errore')+').'));fb.textContent='Leggi scadenza e importi'}
                   fb.disabled=false;
