@@ -12,7 +12,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Registro Lavori">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<style>body.pal main{padding-top:12px}body.pal .brand{margin:6px 0 6px;padding-bottom:8px}body.pal .brand h1{font-size:26px;line-height:1.15}body.pal .tabs{padding-top:2px;padding-bottom:2px;margin-bottom:12px}body.pal .tabs button{padding:8px 12px}body.calv main{padding-top:12px}
+<style>@font-face{font-family:'Coolvetica';src:url('coolvetica.woff2') format('woff2'),url('coolvetica.ttf') format('truetype'),url('coolvetica.otf') format('opentype');font-display:swap}
+body,button,input,select,textarea{font-family:'Coolvetica',system-ui,-apple-system,'Segoe UI',sans-serif}
+.brand h1,h1{text-transform:uppercase;letter-spacing:.04em}
+body.pal main{padding-top:12px}body.pal .brand{margin:6px 0 6px;padding-bottom:8px}body.pal .brand h1{font-size:26px;line-height:1.15}body.pal .tabs{padding-top:2px;padding-bottom:2px;margin-bottom:12px}body.pal .tabs button{padding:8px 12px}body.calv main{padding-top:12px}
 body.pal .brand,.brand{position:relative}#refbtn{position:absolute;right:0;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:20px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #refbtn{right:6px}
 #vbtn{position:absolute;right:38px;top:50%;transform:translateY(-60%);width:34px;height:34px;margin:0;padding:0;font-size:18px;line-height:1;border-radius:2px;background:transparent;color:var(--tx)}body.calv #vbtn{right:44px}
 #vmenu{position:absolute;right:0;top:100%;z-index:30;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:4px;min-width:150px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.35)}#vmenu button{display:block;width:100%;text-align:left;margin:0;padding:10px 12px;background:transparent;border:0;color:var(--tx);font-size:15px}#vmenu button.on{font-weight:700}
@@ -35,7 +38,7 @@ body.v-pc #f24v>details{grid-column:1/-1}
 #wz .wsum{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);font-size:16px}#wz .wsum b{text-align:right}
 body.mod{background:radial-gradient(900px 500px at 15% -10%,rgba(63,130,246,.13),transparent 60%),radial-gradient(700px 400px at 100% 0,rgba(63,130,246,.07),transparent 55%),var(--bg);background-attachment:fixed}
 body.pal.mod .card{border:1px solid rgba(255,255,255,.07);border-top:1px solid rgba(255,255,255,.07);border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015)),var(--card);box-shadow:0 3px 10px rgba(0,0,0,.16)}
-body.pal.mod .brand h1{font-weight:800;letter-spacing:.02em;text-transform:none;font-size:25px}
+body.pal.mod .brand h1{font-weight:800;letter-spacing:.02em;font-size:25px}
 body.pal.mod .tabs{border:0;background:transparent;gap:6px;padding:4px 0}
 body.pal.mod .tabs button{border:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.04);padding:8px 16px;font-weight:600;color:var(--mut)}
 body.pal.mod .tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac);box-shadow:0 2px 6px rgba(63,130,246,.25)}
