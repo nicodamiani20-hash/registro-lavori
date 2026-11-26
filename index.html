@@ -890,7 +890,7 @@ function hint(){
   var c=cl(+$('cSel').value);$('chint').textContent=c?'Tariffa base: '+eur.format(c.rate)+'. Puoi aumentarla per questo giorno.':'';
 }
 function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rate}
-function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
+function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';if(window.__kw1)window.__kw1.style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
 [1,2,3,4,5,6,7,8,9,10,11].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
@@ -901,8 +901,8 @@ $('add').onclick=function(){
   var a=parseFloat($('amt').value),d=$('date').value,c=+$('cSel').value;
   if(!(a>=0)||$('amt').value===''||!d){status('Inserisci data e importo valido');return}
   if(type==='lavoro'&&!cl(c)){status('Scegli un cliente (aggiungilo in "Clienti")');return}
-  var x={id:Date.now(),t:type,d:d,n:$('desc').value.trim(),a:Math.round(a*100)/100};if(type==='spesa'){x.cat=$('cat').value;var wv=+$('wSel').value;if(wv){x.w=wv;x.bill=$('bill').checked}}if(type==='lavoro'){x.c=c;x.s=Math.round((parseFloat($('sup').value)||0)*100)/100;x.sn=$('supn').value.trim();var k=parseFloat($('km').value)||0;if(k>0)x.k=k;x.p=$('paid').checked}
-  entries.push(x);$('paid').checked=false;$('sup').value='';$('supn').value='';$('km').value='';$('desc').value='';if(type==='lavoro')setAmt('cSel','amt');else $('amt').value='';
+  var x={id:Date.now(),t:type,d:d,n:$('desc').value.trim(),a:Math.round(a*100)/100};if(type==='spesa'){x.cat=$('cat').value;var wv=+$('wSel').value;if(wv){x.w=wv;x.bill=$('bill').checked}}if(type==='lavoro'){x.c=c;x.s=Math.round((parseFloat($('sup').value)||0)*100)/100;x.sn=$('supn').value.trim();var k=parseFloat($('km').value)||0;if(k>0)x.k=k;var lc=$('loc').value.trim();if(lc)x.loc=lc;x.p=$('paid').checked}
+  entries.push(x);$('paid').checked=false;$('sup').value='';$('supn').value='';$('km').value='';$('loc').value='';$('desc').value='';if(type==='lavoro')setAmt('cSel','amt');else $('amt').value='';
   ov=false;month=d.slice(0,7);save();render();if(type==='lavoro'&&k>0&&!(cl(c)||{}).kmr)status('Questo cliente non ha un rimborso €/km: impostalo in Clienti');
 };
 $('padd').onclick=function(){
@@ -912,10 +912,10 @@ $('padd').onclick=function(){
   var d=new Date(s+'T12:00:00'),n=0,t=Date.now(),pk=parseFloat($('pkm').value)||0,pkr=Math.round(pk*(c.kmr||0)*100)/100;
   while(ymd(d)<=e&&n<366){
     var ds=ymd(d),w=d.getDay();
-    if(!entries.some(function(x){return x.t==='lavoro'&&x.c===c.id&&x.d===ds})){entries.push({id:t+n,t:'lavoro',c:c.id,d:ds,n:$('pdesc').value.trim(),a:Math.round(a*100)/100,s:Math.round((parseFloat($('psup').value)||0)*100)/100,sn:$('psupn').value.trim(),k:pk,p:$('ppaid').checked});n++}
+    if(!entries.some(function(x){return x.t==='lavoro'&&x.c===c.id&&x.d===ds})){entries.push({id:t+n,t:'lavoro',c:c.id,d:ds,n:$('pdesc').value.trim(),a:Math.round(a*100)/100,s:Math.round((parseFloat($('psup').value)||0)*100)/100,sn:$('psupn').value.trim(),k:pk,p:$('ppaid').checked});if($('ploc').value.trim())entries[entries.length-1].loc=$('ploc').value.trim();n++}
     d.setDate(d.getDate()+1);
   }
-  $('pdesc').value='';ov=false;month=s.slice(0,7);save();render();status(n+' giornate aggiunte'+(pk>0&&!c.kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''))
+  $('pdesc').value='';$('ploc').value='';ov=false;month=s.slice(0,7);save();render();status(n+' giornate aggiunte'+(pk>0&&!c.kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''))
 };
 function jobOf(x){
   if(!x||x.t!=='lavoro'||!x.c||!(x.n||'').trim())return [x];
@@ -940,6 +940,48 @@ function setPaid(x,v,msg){
     ['Tutto il lavoro ('+g.length+' giorni)',function(){g.forEach(function(e){e.p=v});save();render();status(g.length+(v?' giornate segnate come pagate':' giornate segnate come non pagate'))}],
     ['Solo questo giorno',function(){x.p=v;save();render()}]]);
 }
+/*KMAUTO*/(function(){
+  var HK='home_addr',RK='km_rt',CK='geo_cache';
+  function ls(k,d){try{var v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
+  function ss(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  async function geo(q){
+    var cache={};try{cache=JSON.parse(ls(CK,'{}'))||{}}catch(e){}
+    var key=q.toLowerCase().replace(/\s+/g,' ').trim();if(cache[key])return cache[key];
+    var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=it&q='+encodeURIComponent(q));
+    var j=await r.json();if(!j||!j.length)throw {code:'nf',q:q};
+    var v=[+j[0].lon,+j[0].lat];cache[key]=v;var ks=Object.keys(cache);if(ks.length>200)delete cache[ks[0]];ss(CK,JSON.stringify(cache));return v}
+  async function route(a,b){
+    var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+a.join(',')+';'+b.join(',')+'?overview=false');
+    var j=await r.json();if(!j||j.code!=='Ok'||!j.routes||!j.routes.length)throw {code:'noroute'};return j.routes[0].distance/1000}
+  window.kmCalc=async function(from,to){var a=await geo(from),b=await geo(to);return route(a,b)};
+  var UIS=[];
+  function mkUI(pre,kmEl,before){
+    var w=mk('div');w.id=pre+'kw';w.style.cssText='margin:6px 0';
+    var loc=mk('input');loc.type='text';loc.id=pre+'loc';loc.placeholder='Luogo del lavoro (calcolo i km da casa)';loc.maxLength=120;loc.setAttribute('autocomplete','off');
+    var hint=mk('div','hint');hint.style.margin='2px 0 6px';
+    var home=mk('input');home.type='text';home.placeholder='Indirizzo di casa (partenza)';home.value=ls(HK,'Gottolengo, BS');home.maxLength=120;
+    var rl=document.createElement('label');rl.className='ck';var rt=document.createElement('input');rt.type='checkbox';rt.checked=ls(RK,'1')==='1';rl.appendChild(rt);rl.appendChild(document.createTextNode('Conta andata e ritorno'));
+    var bt=mk('button','','Calcola km');bt.style.cssText='display:block;width:100%;margin:4px 0';
+    var seq=0;
+    async function go(){
+      var q=loc.value.trim();if(!q){hint.textContent='';return}
+      var me=++seq;hint.textContent='Calcolo il percorso…';
+      try{
+        var one=await kmCalc(home.value.trim()||'Gottolengo, BS',q);if(me!==seq)return;
+        var tot=Math.round(one*(rt.checked?2:1)*10)/10;kmEl.value=tot;kmEl.dispatchEvent(new Event('change'));
+        hint.textContent='Casa → '+q+': '+one.toFixed(1).replace('.',',')+' km'+(rt.checked?' × 2 = '+String(tot).replace('.',',')+' km':'')+' (puoi correggerli a mano)';
+      }catch(e){if(me!==seq)return;hint.textContent=e&&e.code==='nf'?'Non trovo “'+e.q+'”: prova con città o indirizzo più preciso':e&&e.code==='noroute'?'Percorso non trovato':'Calcolo non riuscito: controlla la connessione'}
+    }
+    loc.onchange=go;bt.onclick=go;rt.onchange=function(){ss(RK,rt.checked?'1':'0');UIS.forEach(function(u){u.rt.checked=rt.checked});go()};
+    home.onchange=function(){ss(HK,home.value.trim());UIS.forEach(function(u){u.home.value=home.value});go()};
+    w.appendChild(loc);w.appendChild(bt);w.appendChild(hint);w.appendChild(home);w.appendChild(rl);
+    before.parentNode.insertBefore(w,before);UIS.push({rt:rt,home:home,hint:hint});return w;
+  }
+  var k1=$('km'),k2=$('pkm');
+  var w1=mkUI('',k1,k1);w1.style.display=k1.style.display;window.__kw1=w1;
+  mkUI('p',k2,k2.previousElementSibling);
+  var ph=mk('div','hint');
+})();
 function askConfirm(title,lines,go){
   var o=$('cfm');if(!o){o=mk('div');o.id='cfm';o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(o)}
   o.textContent='';var c=mk('div','card');c.style.cssText='width:100%;max-width:360px';
