@@ -549,6 +549,35 @@ async function coLogoPrep(file){var nm=file.name||'',isPdf=file.type==='applicat
     cv.width=Math.round(vp.width);cv.height=Math.round(vp.height);var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);await pg.render({canvasContext:cx,viewport:vp}).promise;
     var r0=fin(cv,cv.width,cv.height);cv.width=cv.height=0;return r0}
   var d=await decImg(file,960),r=fin(d.src,d.w,d.h);d.rel();return r}
+var CO_DEF={forma:'Impresa artigiana individuale',n:'Damiani Nicol\u00f2',t:'Nicol\u00f2 Damiani',d:'Lighting setup, programming & networking for events',a:'Cascina Recolo, 6',cap:'25023',c:'Gottolengo',p:'BS',iva:'04198740989',cf:'DMNNCL99S20E884X',rea:'BS - 596149',tel:'+39 334 125 6779',em:'nicodamiani20@gmail.com',pec:'pecdamiani@legalmail.it'};
+function coData(){return Object.keys(company).length?company:CO_DEF}
+function coLogoSrc(){return coData().logo||LOGO_ND}
+function coBrand(){try{var lg=company&&company.logo;if(lg)localStorage.setItem('co_logo',lg);else localStorage.removeItem('co_logo')}catch(e){}
+  var s=coLogoSrc(),r=document.getElementById('rlogo');if(r)r.src=s;['fav1','fav2'].forEach(function(i){var l=document.getElementById(i);if(l)l.href=s});var sp=document.getElementById('splimg');if(sp&&document.getElementById('splash'))sp.src=s}
+function coLogoImg(){return new Promise(function(ok){var u=coLogoSrc(),im=new Image();im.onload=function(){ok({u:u,w:im.naturalWidth||im.width,h:im.naturalHeight||im.height,f:/^data:image\/png/.test(u)?'PNG':'JPEG'})};im.onerror=function(){ok(null)};im.src=u})}
+function coAddr(c){return [c.a,[[c.cap,c.c].filter(Boolean).join(' '),c.p?'('+c.p+')':''].filter(Boolean).join(' ')].filter(Boolean)}
+function drawLH(doc,lg){
+  var c=coData(),fm=('forma' in c)?c.forma:CO_DEF.forma;
+  doc.setFillColor(61,139,255);doc.rect(0,0,210,2.1,'F');
+  var bx=15.4,by=13.3,bs=17.8,tx=bx;
+  if(lg){var sc=Math.min(bs/lg.w,bs/lg.h),w=lg.w*sc,h=lg.h*sc;try{doc.addImage(lg.u,lg.f,bx,by+(bs-h)/2,w,h,'LOGO','FAST')}catch(e){}tx=bx+w+5.5}
+  doc.setFont('helvetica','bold');doc.setFontSize(19);doc.setTextColor(25);doc.text(String(c.n||'').toUpperCase(),tx,by+9.6);
+  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(90);if(c.d)doc.text(String(c.d),tx,by+15.3);
+  var ad=coAddr(c);if(c.tel)ad.push('Tel. '+c.tel);if(c.em)ad.push(c.em);
+  doc.setFontSize(9);doc.setTextColor(60);ad.forEach(function(t,i){doc.text(String(t),195,16+i*5,{align:'right'})});
+  doc.setDrawColor(208);doc.setLineWidth(.3);doc.line(15.4,38.4,195,38.4);doc.line(15.4,274.8,195,274.8);
+  doc.setFontSize(8);doc.setTextColor(85);
+  var f1=[c.iva?'P. IVA '+c.iva:'',c.cf?'C.F. '+c.cf:'',c.rea?'REA '+c.rea:'',c.pec?'PEC '+c.pec:''];
+  doc.text(f1[0],15.4,280.6);doc.text(f1[1],61.3,280.6);doc.text(f1[2],116.5,280.6);doc.text(f1[3],195,280.6,{align:'right'});
+  var l2=[fm,coAddr(c).join(', ')].filter(Boolean).join(' \u00b7 ');if(l2)doc.text(l2,15.4,287);
+  doc.setTextColor(0);doc.setDrawColor(0);doc.setLineWidth(.2)}
+function coHeadEl(){var c=coData(),w=mk('div');w.style.cssText='background:#fff;color:#222;border-top:6px solid #3d8bff;margin:-16px -16px 12px;padding:14px 16px 10px;border-radius:6px 6px 0 0;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap';
+  var l=mk('div');l.style.cssText='display:flex;align-items:center;gap:12px;min-width:0';var im=mk('img');im.src=coLogoSrc();im.alt='';im.style.cssText='width:54px;height:54px;object-fit:contain;flex:none';l.appendChild(im);
+  var t=mk('div');var n=mk('div','',String(c.n||'').toUpperCase());n.style.cssText='font-weight:800;font-size:18px;line-height:1.1';t.appendChild(n);if(c.d){var d=mk('div','',c.d);d.style.cssText='font-size:11px;color:#555;margin-top:3px';t.appendChild(d)}l.appendChild(t);w.appendChild(l);
+  var ad=coAddr(c);if(c.tel)ad.push('Tel. '+c.tel);if(c.em)ad.push(c.em);var r=mk('div');r.style.cssText='font-size:11px;color:#444;text-align:right;line-height:1.5';ad.forEach(function(x){r.appendChild(mk('div','',x))});w.appendChild(r);return w}
+function coFootEl(){var c=coData(),fm=('forma' in c)?c.forma:CO_DEF.forma,w=mk('div');w.style.cssText='background:#fff;color:#555;font-size:10px;margin:18px -16px -16px;padding:10px 16px 12px;border-top:1px solid #ddd;border-radius:0 0 6px 6px;line-height:1.6';
+  var r=mk('div');r.style.cssText='display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap';[c.iva?'P. IVA '+c.iva:'',c.cf?'C.F. '+c.cf:'',c.rea?'REA '+c.rea:'',c.pec?'PEC '+c.pec:''].filter(Boolean).forEach(function(x){r.appendChild(mk('span','',x))});w.appendChild(r);
+  var l2=[fm,coAddr(c).join(', ')].filter(Boolean).join(' \u00b7 ');if(l2)w.appendChild(mk('div','',l2));return w}
 $('cologo').onchange=async function(){var f=$('cologo').files[0];$('cologo').value='';if(!f)return;status('Carico il logo\u2026');
   try{if(Object.keys(company).length===0)company=Object.assign({},CO_DEF);company.logo=await coLogoPrep(f);save();coBrand();if(window.__coShow)window.__coShow();status('Logo aggiornato')}
   catch(e){status('Logo non caricato: '+(e==='decode'?'file non leggibile (usa JPG, PNG, HEIC o PDF)':((e&&e.message)||e)))}};
