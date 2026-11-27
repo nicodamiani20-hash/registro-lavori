@@ -923,6 +923,8 @@ fx(document.body);new MutationObserver(function(ms){ms.forEach(function(m){[].fo
     NM.forEach(function(x){var b=document.createElement('button');b.textContent=(x[0]===m?'✓ ':'   ')+x[1];if(x[0]===m)b.className='on';b.onclick=function(){try{localStorage.setItem(K,x[0])}catch(e){}M.style.display='none';apply()};M.appendChild(b)});
     var sp=document.createElement('div');sp.className='sep';sp.textContent='Stile';M.appendChild(sp);
     [['cl','Classico'],['mod','Moderno']].forEach(function(x){var b=document.createElement('button'),on=(x[0]==='mod')===sty();b.textContent=(on?'\u2713 ':'\u00a0\u00a0 ')+x[1];if(on)b.className='on';b.onclick=function(){try{localStorage.setItem('style_mode',x[0])}catch(e){}M.style.display='none';apply()};M.appendChild(b)});
+    var s2=document.createElement('div');s2.className='sep';s2.textContent='Demo';M.appendChild(s2);
+    var dm=document.createElement('button'),on2=!!window.__demo;dm.textContent=on2?'Esci dalla demo':'Apri demo (dati finti)';if(on2)dm.className='on';dm.onclick=function(){location.href=on2?location.pathname:location.pathname+'?demo=1'};M.appendChild(dm);
   }
   $('vbtn').onclick=function(e){e.stopPropagation();var M=$('vmenu');if(M.style.display==='block'){M.style.display='none';return}menu();M.style.display='block'};
   document.addEventListener('click',function(){$('vmenu').style.display='none'});
