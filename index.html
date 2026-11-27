@@ -532,7 +532,7 @@ function days(m){
 function mk(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
 function delEntry(id){
   var x=entries.filter(function(y){return y.id===id})[0],g=x?jobOf(x):[];
-  function del(ids,m){ids.forEach(function(i){ATT.del(i)});entries=entries.filter(function(y){return ids.indexOf(y.id)<0});save();render();status(m)}
+  function del(ids,m){var sp=entries.filter(function(y){return y.t==='spesa'&&y.w&&ids.indexOf(y.w)>=0}).map(function(y){return y.id});var all=ids.concat(sp);all.forEach(function(i){ATT.del(i)});entries=entries.filter(function(y){return all.indexOf(y.id)<0});save();render();status(m+(sp.length?' (con '+sp.length+(sp.length===1?' spesa collegata':' spese collegate')+')':''))}
   if(g.length<2){del([id],'Movimento eliminato');return}
   var f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})};
   askChoice('Eliminare quale parte?',[x.n.trim()+' \u00b7 '+g.length+' giorni ('+f(g[0].d)+'\u2013'+f(g[g.length-1].d)+')'],[
