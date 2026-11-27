@@ -629,7 +629,10 @@ function renderLuoghi(){
     var t=mk('div','',g.name);t.style.cssText='font-weight:700;font-size:17px';var n=mk('div','hint',g.days.length+(g.days.length===1?' giorno':' giorni'));n.style.whiteSpace='nowrap';h.appendChild(t);h.appendChild(n);cd.appendChild(h);
     if(c){var cc=mk('div','hint');cc.style.marginTop='4px';var dt=mk('i','dot');dt.style.background=c.color;cc.appendChild(dt);cc.appendChild(document.createTextNode(' '+c.name));cd.appendChild(cc)}
     var dd=mk('div','lgd');lgRanges(g.days).slice().reverse().forEach(function(r){dd.appendChild(mk('span','',lgRange(r[0],r[1])))});cd.appendChild(dd);
-    if(LG.bad[g.key])cd.appendChild(mk('div','hint','Posizione non trovata sulla mappa')).style.marginTop='8px';
+    var has=!!(LG.coords[g.key]||window.__geoGet(g.name));
+    if(LG.bad[g.key]&&!has)cd.appendChild(mk('div','hint','Posizione non trovata sulla mappa')).style.marginTop='8px';
+    var pb=mk('button','',has?'Cambia posizione sulla mappa':'Scegli la posizione sulla mappa');pb.style.cssText='margin:10px 0 0;width:100%';
+    pb.onclick=function(){window.__openMap(g.name,function(lb,v){window.__geoPut(g.name,v);LG.coords[g.key]=v;delete LG.bad[g.key];renderLuoghi()})};cd.appendChild(pb);
     L.appendChild(cd)});
   lgMap(G)}
 async function lgMap(G){
@@ -1262,8 +1265,9 @@ function setPaid(x,v,msg){
   async function geo(q){
     var cache={};try{cache=JSON.parse(ls(CK,'{}'))||{}}catch(e){}
     var key=q.toLowerCase().replace(/\s+/g,' ').trim();if(cache[key])return cache[key];
-    var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=it&q='+encodeURIComponent(q));
-    var j=await r.json();if(!j||!j.length)throw {code:'nf',q:q};
+    var j=null,vs=[q,q+', Italia',q.replace(/^(teatro|palazzo|fiera|fiere|centro|palasport|palazzetto)\s+(di\s+|del\s+|della\s+|dei\s+)?/i,'')];
+    for(var vi=0;vi<vs.length&&(!j||!j.length);vi++){if(vi&&vs[vi]===vs[0])continue;var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=it&q='+encodeURIComponent(vs[vi]));j=await r.json();if(vi<vs.length-1&&(!j||!j.length))await new Promise(function(z){setTimeout(z,1100)})}
+    if(!j||!j.length)throw {code:'nf',q:q};
     var v=[+j[0].lon,+j[0].lat];cache[key]=v;var ks=Object.keys(cache);if(ks.length>200)delete cache[ks[0]];ss(CK,JSON.stringify(cache));return v}
   async function route(a,b){
     var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+a.join(',')+';'+b.join(',')+'?overview=false');
@@ -1271,7 +1275,7 @@ function setPaid(x,v,msg){
   window.kmCalc=async function(from,to){var a=await geo(from),b=await geo(to);return route(a,b)};
   function short(r){var a=r.address||{},st=a.road||a.pedestrian||a.square||a.neighbourhood||'',hn=a.house_number?' '+a.house_number:'',ct=a.city||a.town||a.village||a.municipality||a.hamlet||'',pv=a.county&&a.state_code?'':'';
     var nm=r.name&&r.name!==st?r.name:'';var parts=[];if(nm)parts.push(nm);if(st)parts.push(st+hn);if(ct)parts.push(ct);var s=parts.join(', ');return s||String(r.display_name||'').split(',').slice(0,3).join(',').trim()}
-  window.__geo=geo;window.__loadLeaflet=function(){return loadLeaflet()};window.__geoGet=function(q){try{return (JSON.parse(ls(CK,'{}'))||{})[q.toLowerCase().replace(/\s+/g,' ').trim()]||null}catch(e){return null}};
+  window.__openMap=function(a,b){return openMap(a,b)};window.__geo=geo;window.__loadLeaflet=function(){return loadLeaflet()};window.__geoGet=function(q){try{return (JSON.parse(ls(CK,'{}'))||{})[q.toLowerCase().replace(/\s+/g,' ').trim()]||null}catch(e){return null}};
   window.__geoPut=function(q,v){var cache={};try{cache=JSON.parse(ls(CK,'{}'))||{}}catch(e){}cache[q.toLowerCase().replace(/\s+/g,' ').trim()]=v;ss(CK,JSON.stringify(cache))};
   async function nsearch(q){var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&accept-language=it&countrycodes=it,ch,fr,at,si,de&q='+encodeURIComponent(q));return r.json()}
   function loadLeaflet(){if(window.__lfp)return window.__lfp;
@@ -1301,7 +1305,7 @@ function setPaid(x,v,msg){
         cur={label:short(j)||(lat.toFixed(5)+', '+lon.toFixed(5)),lat:lat,lon:lon};lab.textContent=cur.label}
       catch(e){cur={label:lat.toFixed(5)+', '+lon.toFixed(5),lat:lat,lon:lon};lab.textContent=cur.label}
       ok.disabled=false}
-    ok.onclick=function(){if(cur){window.__geoPut(cur.label,[cur.lon,cur.lat]);done(cur.label);close()}};
+    ok.onclick=function(){if(cur){window.__geoPut(cur.label,[cur.lon,cur.lat]);done(cur.label,[cur.lon,cur.lat]);close()}};
     async function find(){var t=q.value.trim();if(!t)return;lab.textContent='Cerco…';try{var r=await nsearch(t);if(!r.length){lab.textContent='Nessun risultato: prova con un nome più preciso';return}place(+r[0].lat,+r[0].lon,16)}catch(e){lab.textContent='Ricerca non riuscita: controlla la connessione'}}
     sb.onclick=find;q.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();find()}};
     loadLeaflet().then(async function(){
