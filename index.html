@@ -626,19 +626,6 @@ function renderCo(){
   cp.onclick=function(){var n1=inp('password','Nuova password'),n2=inp('password','Ripeti la nuova password');var ok=mk('button','pri','Salva password');ok.style.cssText='margin:0;width:100%';cp.remove();c2.appendChild(n1);c2.appendChild(n2);c2.appendChild(ok);
     ok.onclick=async function(){if(n1.value.length<6){status('Almeno 6 caratteri');return}if(n1.value!==n2.value){status('Le password non coincidono');return}await coSetPw(n1.value);status('Password cambiata');renderCo()}};c2.appendChild(cp);
   var lk=mk('button','','Blocca ora');lk.style.cssText='display:block;width:100%;margin:10px 0 0';lk.onclick=coLock;c2.appendChild(lk);
-  var c3=mk('div','card');R.appendChild(c3);c3.appendChild(mk('div','k','Fatture in Cloud'));
-  var ft=coGet('fic_tok',''),fh=mk('div','hint',ft?'Token salvato su questo dispositivo.':'Genera il token in Fatture in Cloud (Impostazioni → Applicazioni collegate) e incollalo qui. Resta solo su questo dispositivo.');fh.style.margin='8px 0';c3.appendChild(fh);
-  var fi=inp('password','Token di accesso');fi.value=ft;fi.setAttribute('autocomplete','off');c3.appendChild(fi);
-  var fr=mk('div','hint','');fr.style.margin='8px 0 0';
-  var fv=mk('button','pri','Salva e verifica collegamento');fv.style.cssText='display:block;width:100%;margin:10px 0 0';
-  fv.onclick=async function(){var t=fi.value.trim();if(!t){status('Incolla il token');return}try{localStorage.setItem('fic_tok',t)}catch(e){}fr.textContent='Verifica in corso…';
-    try{var r=await fetch('https://api-v2.fattureincloud.it/user/companies',{headers:{Authorization:'Bearer '+t,Accept:'application/json'}});
-      if(r.status===401||r.status===403){fr.textContent='Token non valido o senza permessi (errore '+r.status+').';return}
-      if(!r.ok){fr.textContent='Fatture in Cloud ha risposto con errore '+r.status+'.';return}
-      var j=await r.json(),cs=(j&&j.data&&j.data.companies)||[];fr.textContent='Collegamento riuscito'+(cs.length?': '+cs.map(function(c){return c.name}).join(', '):'')+'.';fh.textContent='Token salvato su questo dispositivo.'}
-    catch(e){fr.textContent='Il browser non riesce a contattare Fatture in Cloud (probabile blocco di sicurezza CORS, oppure sei offline). Il token è salvato ma serve un passaggio intermedio.'}};
-  c3.appendChild(fv);
-  var fd=mk('button','','Scollega');fd.style.cssText='display:block;width:100%;margin:10px 0 0';fd.onclick=function(){try{localStorage.removeItem('fic_tok')}catch(e){}renderCo()};if(ft)c3.appendChild(fd);c3.appendChild(fr);
   var nt=mk('div','hint','Il blocco protegge l’accesso a questa pagina sul dispositivo (si richiude da solo dopo un minuto in background). La password e Face ID valgono solo su questo telefono. I dati dell’azienda si sincronizzano con gli altri dispositivi come il resto dell’app.');nt.style.marginTop='12px';c2.appendChild(nt)
 }
 function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps,f24:f24s,company:company}}
