@@ -544,7 +544,9 @@ async function coLogoPrep(file){var nm=file.name||'',isPdf=file.type==='applicat
   function fin(src,w,h){var k=Math.min(1,480/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));var x=c.getContext('2d');if(!png){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}x.drawImage(src,0,0,c.width,c.height);return c.toDataURL(png?'image/png':'image/jpeg',.88)}
   async function dec(f){
     if(window.createImageBitmap){try{var bm=await createImageBitmap(f);var r=fin(bm,bm.width,bm.height);try{bm.close()}catch(e){}return r}catch(e){}}
-    return await new Promise(function(ok,ko){var im=new Image(),u=URL.createObjectURL(f);im.onload=function(){var r=fin(im,im.naturalWidth||im.width||100,im.naturalHeight||im.height||100);URL.revokeObjectURL(u);ok(r)};im.onerror=function(){URL.revokeObjectURL(u);ko('decode')};im.src=u})}
+    try{return await new Promise(function(ok,ko){var im=new Image(),u=URL.createObjectURL(f);im.onload=function(){var r=fin(im,im.naturalWidth||im.width||100,im.naturalHeight||im.height||100);URL.revokeObjectURL(u);ok(r)};im.onerror=function(){URL.revokeObjectURL(u);ko('decode')};im.src=u})}catch(e){}
+    var du=await new Promise(function(ok,ko){var fr=new FileReader;fr.onload=function(){ok(fr.result)};fr.onerror=function(){ko('decode')};fr.readAsDataURL(f)});
+    return await new Promise(function(ok,ko){var im=new Image();im.onload=function(){ok(fin(im,im.naturalWidth||im.width||100,im.naturalHeight||im.height||100))};im.onerror=function(){ko('decode')};im.src=du})}
   if(isPdf){
     if(!window.pdfjsLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -583,7 +585,7 @@ function coHeadEl(){var c=coData(),w=mk('div');w.style.cssText='background:#fff;
 function coFootEl(){var c=coData(),fm=('forma' in c)?c.forma:CO_DEF.forma,w=mk('div');w.style.cssText='background:#fff;color:#555;font-size:10px;margin:18px -16px -16px;padding:10px 16px 12px;border-top:1px solid #ddd;border-radius:0 0 6px 6px;line-height:1.6';
   var r=mk('div');r.style.cssText='display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap';[c.iva?'P. IVA '+c.iva:'',c.cf?'C.F. '+c.cf:'',c.rea?'REA '+c.rea:'',c.pec?'PEC '+c.pec:''].filter(Boolean).forEach(function(x){r.appendChild(mk('span','',x))});w.appendChild(r);
   var l2=[fm,coAddr(c).join(', ')].filter(Boolean).join(' \u00b7 ');if(l2)w.appendChild(mk('div','',l2));return w}
-$('cologo').onchange=async function(){var f=$('cologo').files[0];$('cologo').value='';if(!f)return;
+$('cologo').onchange=async function(){var f=$('cologo').files[0];$('cologo').value='';if(!f)return;status('Carico il logo\u2026');
   try{if(Object.keys(company).length===0)company=Object.assign({},CO_DEF);company.logo=await coLogoPrep(f);save();coBrand();if(window.__coShow)window.__coShow();status('Logo aggiornato')}
   catch(e){status('Logo non caricato: '+(e==='decode'?'file non leggibile (usa JPG, PNG, HEIC o PDF)':((e&&e.message)||e)))}};
 function renderCo(){
@@ -922,7 +924,7 @@ $('refbtn').onclick=async function(){
   try{if('caches' in window){var ks=await caches.keys();await Promise.all(ks.map(function(k){return caches.delete(k)}))}}catch(e){}
   try{if(navigator.serviceWorker){var rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(function(r){return r.unregister()}))}}catch(e){}
   try{sessionStorage.setItem('rl_tab',String(tab))}catch(e){}
-  location.reload();
+  try{var u=new URL(location.href);u.searchParams.set('r',String(Date.now()));location.replace(u.toString())}catch(e){location.reload()}
 };
 /*PULL*/(function(){
   var sy=0,dy=0,on=false,ind=document.createElement('div');
