@@ -317,6 +317,9 @@ body:not(.v-pc) .brand h1{font-size:min(26px,4.6vw)!important}
 #dayL input[type=checkbox]{position:relative;vertical-align:middle}
 #dayL input[type=checkbox]:checked{-webkit-appearance:none!important;appearance:none!important;background:#2fb36d!important;border:2px solid #2fb36d!important}
 #dayL input[type=checkbox]:checked::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.cell{transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.cell.sel,body.pal .cell.sel,body.mod .cell.sel{outline:none!important;border-color:var(--ac)!important;background:linear-gradient(160deg,color-mix(in srgb,var(--ac) 26%,transparent),color-mix(in srgb,var(--ac) 7%,transparent))!important;box-shadow:0 0 0 1px var(--ac),0 6px 18px -4px color-mix(in srgb,var(--ac) 55%,transparent);transform:translateY(-2px) scale(1.03);position:relative;z-index:2}
+.cell.sel .n{font-weight:700}
 </style>
 </head>
 <body>
