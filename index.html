@@ -186,7 +186,7 @@ var MCP={callTool:async function(srv,tool,a){
   }
   throw {code:'tool_error'};
 }};
-var DL={save:async function(o){if(window.__capture){var cf=window.__capture;window.__capture=null;return cf(o)}var a=document.createElement('a');a.href=URL.createObjectURL(o.data);a.download=o.filename;document.body.appendChild(a);a.click();setTimeout(function(){a.remove()},500)}};
+var DL={save:async function(o){if(window.__capture){var cf=window.__capture;window.__capture=null;return cf(o)}var a=document.createElement('a');var bl=o.data instanceof Blob?o.data:new Blob([o.data],{type:/\.pdf$/i.test(o.filename)?'application/pdf':/\.json$/i.test(o.filename)?'application/json':'text/plain'});a.href=URL.createObjectURL(bl);a.download=o.filename;document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(a.href)},4000)}};
 window.claude=window.claude||{use:function(n){return Promise.resolve(n==='mcp'?MCP:n==='downloads'?DL:null)}};
 })();if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});</script>
 <style>
