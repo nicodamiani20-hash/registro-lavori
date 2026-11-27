@@ -373,7 +373,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
     <input type="number" id="sup" placeholder="Supplemento in € (facoltativo)" inputmode="decimal" step="0.01" min="0" style="display:none">
     <input type="text" id="supn" placeholder="Descrizione supplemento (es. trasferta)" maxlength="80" style="display:none">
     <input type="number" id="km" placeholder="Km percorsi (facoltativo)" inputmode="decimal" step="0.1" min="0" style="display:none">
-    <button class="pri" id="add">Aggiungi attività</button>
+    <button class="pri" id="add">Aggiungi spesa</button>
   </div>
   <div class="card wz" id="wz" style="display:none"></div>
   <div class="card" id="pcard" style="display:none">
@@ -1215,7 +1215,7 @@ function hint(){
   var c=cl(+$('cSel').value);$('chint').textContent=c?'Tariffa base: '+eur.format(c.rate)+'. Puoi aumentarla per questo giorno.':'';
 }
 function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rate}
-function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';if(window.__kw1)window.__kw1.style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
+function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';if(window.__kw1)window.__kw1.style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';$('add').textContent=t==='spesa'?'Aggiungi spesa':'Aggiungi lavoro';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
 [1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(function(n){$('b'+n).onclick=function(){tab=n;if(n===13)amon=null;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
