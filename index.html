@@ -343,7 +343,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 <div id="splash" aria-hidden="true"><div id="splbox"><img id="splimg" alt="" width="132" height="132"><div id="spltit">REGISTRO LAVORI</div></div></div>
 <main>
 <div class="brand"><h1>Registro Lavori</h1><button id="mbtn" aria-label="Menu" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><button id="vbtn" aria-label="Vista" title="Vista: telefono o PC">▯</button><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button><div id="vmenu"></div></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b14">Luoghi</button><button id="b13">Allegati</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b14">Luoghi</button><button id="b15">Azienda</button><button id="b13">Allegati</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -459,6 +459,10 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
   <div class="card"><div class="k" style="margin-bottom:8px">Elenco Costi</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
 </section>
 
+<section id="s15" style="display:none">
+  <div id="coR"></div>
+</section>
+
 <section id="s14" style="display:none">
   <div id="lgR"></div>
   <div id="lgL"></div>
@@ -514,7 +518,68 @@ function ymd(d){var z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z
 var today=ymd(new Date()),month=today.slice(0,7);
 $('date').value=today;$('ps').value=today;$('pe').value=today;
 var tt;function status(t){$('st').textContent=t;if(/^(Salvato|Dati|Caricamento)/.test(t))return;var e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(function(){e.style.display='none'},3500)}
-function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps,f24:f24s}}
+/*AZIENDA*/var company={};
+function cmerge(j,soft){if(j&&j.company&&typeof j.company==='object'&&Object.keys(j.company).length&&!(soft&&Object.keys(company).length))company=j.company}
+var CO={un:false,t:0,tries:0,until:0};
+function coGet(k,d){try{var v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}}
+function coSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function b2s(b){var u=new Uint8Array(b),s='';for(var i=0;i<u.length;i++)s+=String.fromCharCode(u[i]);return btoa(s)}
+function s2b(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+async function coHash(pw,salt){var k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);return b2s(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:salt,iterations:150000},k,256))}
+async function coSetPw(pw){var salt=crypto.getRandomValues(new Uint8Array(16));coSet('co_salt',b2s(salt));coSet('co_hash',await coHash(pw,salt))}
+async function coCheck(pw){var s=coGet('co_salt','');if(!s)return false;return (await coHash(pw,s2b(s)))===coGet('co_hash','')}
+function faceOk(){return !!(window.PublicKeyCredential&&navigator.credentials&&window.isSecureContext)}
+async function faceReg(){
+  var o={publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'Registro Lavori'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'azienda',displayName:'Registro Lavori'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000,attestation:'none'}};
+  var c=await navigator.credentials.create(o);coSet('co_cred',b2s(c.rawId))}
+async function faceAuth(){
+  var id=coGet('co_cred','');if(!id)throw 'nocred';
+  await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:s2b(id),transports:['internal']}],userVerification:'required',timeout:60000}})}
+function coLock(){CO.un=false;if(tab===15)renderCo()}
+document.addEventListener('visibilitychange',function(){if(document.hidden){CO.t=Date.now()}else if(CO.un&&Date.now()-CO.t>60000)coLock()});
+var COF=[['n','Nome azienda','text'],['t','Titolare','text'],['d','Descrizione attività','text'],['a','Indirizzo (via e numero)','text'],['cap','CAP','text'],['c','Città','text'],['p','Provincia','text'],['iva','Partita IVA','text'],['cf','Codice fiscale','text'],['rea','REA / Albo imprese artigiane','text'],['tel','Telefono','tel'],['em','Email','email'],['pec','PEC','email'],['sdi','Codice destinatario SDI','text'],['iban','IBAN','text'],['web','Sito web','text']];
+function coLogoPrep(file){return new Promise(function(ok,ko){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){var k=Math.min(1,480/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL(/png|svg|webp/.test(file.type)?'image/png':'image/jpeg',.88))};im.onerror=function(){URL.revokeObjectURL(u);ko()};im.src=u})}
+function renderCo(){
+  var R=$('coR');R.textContent='';var cd=mk('div','card');R.appendChild(cd);
+  function inp(type,ph){var i=document.createElement('input');i.type=type;i.placeholder=ph;i.style.cssText='display:block;width:100%;box-sizing:border-box;margin:0 0 10px;font-size:17px;padding:14px;border-radius:12px';return i}
+  function msg(t){var m=mk('div','hint',t);m.style.margin='6px 0';return m}
+  if(!window.crypto||!crypto.subtle){cd.appendChild(mk('div','k','Area protetta'));cd.appendChild(msg('Questo browser non supporta la protezione con password. Apri l’app da Safari o dall’icona sulla Home.'));return}
+  if(!coGet('co_hash','')){
+    cd.appendChild(mk('div','k','Crea la password'));cd.appendChild(msg('Questa pagina contiene i dati della tua azienda. Scegli una password (almeno 6 caratteri): potrai poi entrare con Face ID.'));
+    var p1=inp('password','Password'),p2=inp('password','Ripeti la password');cd.appendChild(p1);cd.appendChild(p2);
+    var b=mk('button','pri','Imposta password');b.style.margin='0';b.onclick=async function(){if(p1.value.length<6){status('Almeno 6 caratteri');return}if(p1.value!==p2.value){status('Le password non coincidono');return}await coSetPw(p1.value);CO.un=true;status('Password impostata');renderCo()};cd.appendChild(b);return}
+  if(!CO.un){
+    cd.appendChild(mk('div','k','Area protetta'));
+    var hasFace=faceOk()&&coGet('co_cred','');
+    if(hasFace){var fb=mk('button','pri','Entra con Face ID');fb.style.cssText='margin:0 0 12px;width:100%';fb.onclick=async function(){try{await faceAuth();CO.un=true;renderCo()}catch(e){status('Face ID non riuscito: usa la password')}};cd.appendChild(fb)}
+    var pw=inp('password','Password'),eb=mk('button','','Entra con la password');eb.style.cssText='margin:0;width:100%';
+    var go=async function(){if(Date.now()<CO.until){status('Troppi tentativi: riprova tra '+Math.ceil((CO.until-Date.now())/1000)+' secondi');return}
+      if(await coCheck(pw.value)){CO.un=true;CO.tries=0;renderCo()}else{CO.tries++;pw.value='';if(CO.tries>=5){CO.until=Date.now()+30000;CO.tries=0}status('Password errata')}};
+    eb.onclick=go;pw.onkeydown=function(e){if(e.key==='Enter')go()};cd.appendChild(pw);cd.appendChild(eb);
+    if(hasFace)setTimeout(function(){if(!CO.un&&tab===15&&!document.hidden)fb.click()},300);return}
+  cd.appendChild(mk('div','k','Dati dell’azienda'));
+  var lg=mk('div');lg.style.cssText='display:flex;align-items:center;gap:14px;margin:10px 0 14px';
+  var pv=mk('div');pv.style.cssText='width:88px;height:88px;border-radius:16px;background:var(--bg);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:12px;color:var(--mut);text-align:center';
+  function showLogo(){pv.textContent='';if(company.logo){var im=document.createElement('img');im.src=company.logo;im.style.cssText='max-width:100%;max-height:100%;object-fit:contain';pv.appendChild(im)}else pv.textContent='Nessun logo'}showLogo();
+  var lb=document.createElement('input');lb.type='file';lb.accept='image/*';lb.style.display='none';
+  lb.onchange=async function(){var f=lb.files[0];lb.value='';if(!f)return;try{company.logo=await coLogoPrep(f);save();showLogo();status('Logo salvato')}catch(e){status('Immagine non leggibile')}};
+  var bx=mk('div');bx.style.cssText='display:flex;flex-direction:column;gap:8px';
+  var up=mk('button','','Carica logo');up.style.cssText='margin:0;width:auto';up.onclick=function(){lb.click()};var rm=mk('button','','Rimuovi logo');rm.style.cssText='margin:0;width:auto';rm.onclick=function(){delete company.logo;save();showLogo()};
+  bx.appendChild(up);bx.appendChild(rm);lg.appendChild(pv);lg.appendChild(bx);lg.appendChild(lb);cd.appendChild(lg);
+  var ins={};
+  COF.forEach(function(f){var l=mk('div','k',f[1]);l.style.margin='6px 2px 4px';var i=inp(f[2],f[1]);i.value=company[f[0]]||'';i.setAttribute('autocomplete','off');if(f[0]==='iban'||f[0]==='sdi'||f[0]==='p')i.style.textTransform='uppercase';ins[f[0]]=i;cd.appendChild(l);cd.appendChild(i)});
+  var sv=mk('button','pri','Salva i dati');sv.style.cssText='margin:6px 0 0;width:100%';
+  sv.onclick=function(){COF.forEach(function(f){var v=ins[f[0]].value.trim();if(f[0]==='iban'||f[0]==='sdi'||f[0]==='p')v=v.toUpperCase();if(v)company[f[0]]=v;else delete company[f[0]]});save();status('Dati azienda salvati')};cd.appendChild(sv);
+  var c2=mk('div','card');R.appendChild(c2);c2.appendChild(mk('div','k','Sicurezza'));
+  if(faceOk()){var on=!!coGet('co_cred','');var fb2=mk('button','',on?'Disattiva Face ID':'Attiva Face ID');fb2.style.cssText='display:block;width:100%;margin:10px 0 0';
+    fb2.onclick=async function(){if(on){try{localStorage.removeItem('co_cred')}catch(e){}renderCo();return}try{await faceReg();status('Face ID attivato');renderCo()}catch(e){status('Face ID non attivato')}};c2.appendChild(fb2)}
+  var cp=mk('button','','Cambia password');cp.style.cssText='display:block;width:100%;margin:10px 0 0';
+  cp.onclick=function(){var n1=inp('password','Nuova password'),n2=inp('password','Ripeti la nuova password');var ok=mk('button','pri','Salva password');ok.style.cssText='margin:0;width:100%';cp.remove();c2.appendChild(n1);c2.appendChild(n2);c2.appendChild(ok);
+    ok.onclick=async function(){if(n1.value.length<6){status('Almeno 6 caratteri');return}if(n1.value!==n2.value){status('Le password non coincidono');return}await coSetPw(n1.value);status('Password cambiata');renderCo()}};c2.appendChild(cp);
+  var lk=mk('button','','Blocca ora');lk.style.cssText='display:block;width:100%;margin:10px 0 0';lk.onclick=coLock;c2.appendChild(lk);
+  var nt=mk('div','hint','Il blocco protegge l’accesso a questa pagina sul dispositivo (si richiude da solo dopo un minuto in background). La password e Face ID valgono solo su questo telefono. I dati dell’azienda si sincronizzano con gli altri dispositivi come il resto dell’app.');nt.style.marginTop='12px';c2.appendChild(nt)
+}
+function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps,f24:f24s,company:company}}
 function TS(){var t=Date.now();try{localStorage.setItem('ledger_ts',String(t))}catch(e){}return t}
 function save(){
   try{localStorage.setItem('ledger2',JSON.stringify(snap()))}catch(e){}
@@ -746,8 +811,8 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
-  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
-  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12,13,14].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
+  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12,13,14,15].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
   if($('pa').value==='')setAmt('pSel','pa');
   if(type==='lavoro'&&$('amt').value==='')setAmt('cSel','amt');
@@ -1279,7 +1344,7 @@ function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
 try{var rt0=+sessionStorage.getItem('rl_tab');if(rt0>1){sessionStorage.removeItem('rl_tab');setTimeout(function(){var bb=$('b'+rt0);if(bb)bb.click()},50)}else sessionStorage.removeItem('rl_tab')}catch(e){}
-[1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(function(n){$('b'+n).onclick=function(){tab=n;if(n===13)amon=null;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].forEach(function(n){$('b'+n).onclick=function(){tab=n;if(n===13)amon=null;if(n!==15)CO.un=false;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===15)renderCo();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
@@ -1549,7 +1614,7 @@ function ready(en,cs,msg,ct){if(ct&&ct.length)cats=ct;var ei={},ci={};entries.fo
   var fx=false;entries.forEach(function(e){if(e.d.slice(0,4)==='2025'&&e.id<1795620000000){e.d='2026'+e.d.slice(4);fx=true}});
   status(msg);render();setAmt('pSel','pa');if(fx)save();autoSnap();if(!window.__ld&&isLastDay()){window.__ld=1;setTimeout(function(){status('Ultimo giorno del mese: rendiconti pronti in Rendiconto Mensile')},800)}}
 render();
-function local(){var en=[],cs=[],ct;try{var j=JSON.parse(localStorage.getItem('ledger2')||'null');if(j){f24merge(j.f24);en=j.entries||[];cs=j.clients||[];ct=j.cats;(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)})}}catch(e){}ready(en,cs,'Dati salvati solo su questo dispositivo',ct)}
+function local(){var en=[],cs=[],ct;try{var j=JSON.parse(localStorage.getItem('ledger2')||'null');if(j){f24merge(j.f24);cmerge(j);en=j.entries||[];cs=j.clients||[];ct=j.cats;(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)})}}catch(e){}ready(en,cs,'Dati salvati solo su questo dispositivo',ct)}
 var ysp=+today.slice(0,4);
 function renderSpese(){
   $('ylabel').textContent=ysp;
@@ -2059,7 +2124,7 @@ $('bkauto').onchange=function(){lss('bk_auto',this.checked?'1':'0')};
 $('bkfile').onchange=function(){
   var f=this.files&&this.files[0];if(!f)return;var rd=new FileReader();
   rd.onload=function(){try{var j=JSON.parse(rd.result);if(!j||!Array.isArray(j.entries))throw 0;
-    var n0=entries.length;f24merge(j.f24);ready(j.entries,j.clients||[],'Dati ripristinati',j.cats);save();render();status('Ripristino completato: '+(entries.length-n0)+' voci aggiunte')}catch(e){status('File non valido')}$('bkfile').value=''};
+    var n0=entries.length;f24merge(j.f24);cmerge(j,true);ready(j.entries,j.clients||[],'Dati ripristinati',j.cats);save();render();status('Ripristino completato: '+(entries.length-n0)+' voci aggiunte')}catch(e){status('File non valido')}$('bkfile').value=''};
   rd.readAsText(f);
 };
 document.addEventListener('pointerdown',function(){if(lsg('bk_auto')==='0')return;if(lsg('bk_last')===dnow()||!entries.length)return;lss('bk_last',dnow());fileBackup(true)},{once:false,capture:true});
@@ -2111,7 +2176,7 @@ local();
   var unsub=null,skipped=false;
   function lts(){return +(lsg('ledger_ts')||0)}
   function applyRemote(j,ts){
-    entries=j.entries||[];clients=j.clients||[];if(j.cats&&j.cats.length)cats=j.cats;imps=j.imp||[];f24s=j.f24||[];
+    entries=j.entries||[];clients=j.clients||[];if(j.cats&&j.cats.length)cats=j.cats;imps=j.imp||[];f24s=j.f24||[];if(j.company)company=j.company;
     lss('ledger_ts',String(ts));lss('ledger2',JSON.stringify(snap()));render();status('Dati aggiornati dall’altro dispositivo');
   }
   function sdoc(d){if(!d)return null;var j=null;try{j=d.json?JSON.parse(d.json):null}catch(e){}return j}
@@ -2120,7 +2185,7 @@ local();
     try{
       var sn=await ref.get(),d=sn.exists?sn.data():null,j=sdoc(d);
       if(!d||!j){if(entries.length||clients.length)save()}
-      else if(!lts()){(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)});f24merge(j.f24);ready(j.entries||[],j.clients||[],'Dati sincronizzati',j.cats);save()}
+      else if(!lts()){(j.imp||[]).forEach(function(k){if(imps.indexOf(k)<0)imps.push(k)});f24merge(j.f24);cmerge(j);ready(j.entries||[],j.clients||[],'Dati sincronizzati',j.cats);save()}
       else if((d.ts||0)>lts())applyRemote(j,d.ts);
       else if((d.ts||0)<lts())save();
     }catch(e){}
