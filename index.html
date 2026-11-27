@@ -336,6 +336,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 ;#lgmap .leaflet-tile-pane{filter:invert(1) hue-rotate(195deg) brightness(.95) contrast(.88) saturate(.75)}#lgmap{background:#14161b}#lgmap .leaflet-control-attribution{background:rgba(20,22,27,.75);color:#9aa0ac}#lgmap .leaflet-control-attribution a{color:#8fb4ff}
 .lgc.hl{outline:2px solid var(--ac)}
 .lgd{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.lgd span{background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:5px 11px;font-size:13px}
+#attbar{position:sticky;bottom:0;z-index:6;margin-top:12px;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);border:1px solid var(--bd);border-radius:14px;font-size:13px}#attbar .bar{height:8px;border-radius:6px;background:var(--bg);overflow:hidden;margin-top:8px}#attbar .bar i{display:block;height:100%;background:var(--ac);width:0}
 </style>
 </head>
 <body>
@@ -465,7 +466,9 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s13" style="display:none">
   <div class="card"><div class="nav"><button id="aprev" aria-label="Mese precedente">‹</button><b id="alabel"></b><button id="anext" aria-label="Mese successivo">›</button></div></div>
+  <div class="card"><input type="file" id="attnew" accept="image/*,application/pdf" style="display:none"><button class="pri" id="attadd" style="margin:0">Carica un allegato</button><div class="hint" style="margin-top:8px">Scegli un file, poi la spesa a cui collegarlo. Se la spesa ha già un allegato, viene sostituito.</div></div>
   <div id="attL"></div>
+  <div id="attbar"></div>
 </section>
 
 <section id="s12" style="display:none">
@@ -559,9 +562,9 @@ function down(id){var c=col();if(!c)return Promise.resolve(null);
 function lget(id){return tx('readonly',function(s){return s.get(id)})}
 return {put:function(id,o){return tx('readwrite',function(s){return s.put(o,id)})},up:up,
 get:function(id){return lget(id).catch(function(){return null}).then(function(r){if(r)return r;return down(id).then(function(x){if(x)tx('readwrite',function(s){return s.put(x,id)}).catch(function(){});return x}).catch(function(){return null})})},
-del:function(id){var c=col();if(c)c.where('eid','==',id).get().then(function(q){q.forEach(function(x){x.ref.delete().catch(function(){})})}).catch(function(){});return tx('readwrite',function(s){return s.delete(id)}).catch(function(){})},prep:prep}})();
+del:function(id){var c=col();if(c)c.where('eid','==',id).get().then(function(q){q.forEach(function(x){x.ref.delete().catch(function(){})})}).catch(function(){});return tx('readwrite',function(s){return s.delete(id)}).catch(function(){})},prep:prep,local:lget}})();
 function attErr(e){status(e==='big'?'File troppo grande (max 4 MB)':e==='fmt'?'Formato non supportato: usa foto o PDF':'Impossibile leggere il file')}
-function attSet(x,file){return ATT.prep(file).then(function(p){return ATT.put(x.id,p).then(function(){x.att={n:p.name,t:p.type};save();render();return ATT.up(x.id,p).then(function(ok){status(ok?'Allegato salvato e sincronizzato':'Allegato salvato solo su questo dispositivo (accedi per sincronizzarlo)')},function(){status('Allegato salvato solo su questo dispositivo (sincronizzazione non riuscita)')})})}).catch(attErr)}
+function attSet(x,file){return ATT.prep(file).then(function(p){return ATT.put(x.id,p).then(function(){x.att={n:p.name,t:p.type,s:p.blob.size};save();render();return ATT.up(x.id,p).then(function(ok){status(ok?'Allegato salvato e sincronizzato':'Allegato salvato solo su questo dispositivo (accedi per sincronizzarlo)')},function(){status('Allegato salvato solo su questo dispositivo (sincronizzazione non riuscita)')})})}).catch(attErr)}
 function attBox(x){
   var w=mk('div');w.style.cssText='flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--mut)';
   var f=document.createElement('input');f.type='file';f.accept='image/*,application/pdf';f.style.display='none';f.onchange=function(){if(f.files[0])attSet(x,f.files[0])};
@@ -603,7 +606,7 @@ var amon=null;
 function renderAtts(){
   if(!amon)amon=today.slice(0,7);
   $('alabel').textContent=new Date(amon+'-01T12:00:00').toLocaleDateString('it-IT',{month:'long',year:'numeric'});
-  var L=$('attL');L.textContent='';
+  var L=$('attL');L.textContent='';attBarUpd();
   var list=entries.filter(function(e){return e.t==='spesa'&&e.att&&e.d.slice(0,7)===amon}).sort(function(a,b){return a.d.localeCompare(b.d)});
   if(!list.length){var h=mk('div','hint','Nessun allegato in questo mese.');h.style.cssText='text-align:center;padding:24px 0';L.appendChild(h);return}
   list.forEach(function(e){
@@ -618,9 +621,35 @@ function renderAtts(){
     var cache=null;
     function getB(){return cache?Promise.resolve(cache):ATT.get(e.id).then(function(r){cache=r;return r})}
     ob.onclick=function(){getB().then(function(r){if(!r){status('Allegato non disponibile: verifica la connessione');return}window.open(URL.createObjectURL(r.blob),'_blank')})};
-    cd.appendChild(th);cd.appendChild(tx);cd.appendChild(ob);L.appendChild(cd);
+    var col=mk('div');col.style.cssText='display:flex;flex-direction:column;gap:6px';ob.style.padding='8px 14px';col.appendChild(ob);
+    var fi=document.createElement('input');fi.type='file';fi.accept='image/*,application/pdf';fi.style.display='none';fi.onchange=function(){if(fi.files[0])attSet(e,fi.files[0])};
+    var sb=mk('button','','Sostituisci');sb.style.cssText='margin:0;width:auto;padding:8px 14px';sb.onclick=function(){fi.click()};
+    var rb=mk('button','','Rimuovi');rb.style.cssText='margin:0;width:auto;padding:8px 14px';rb.onclick=function(){askConfirm('Rimuovere questo allegato?',[e.att.n],function(){ATT.del(e.id);delete e.att;save();render();status('Allegato rimosso')})};
+    col.appendChild(sb);col.appendChild(rb);col.appendChild(fi);
+    cd.appendChild(th);cd.appendChild(tx);cd.appendChild(col);L.appendChild(cd);
     if(e.att.t!=='application/pdf')getB().then(function(r){if(!r){th.textContent='n/d';return}var im=document.createElement('img');im.style.cssText='width:100%;height:100%;object-fit:cover';im.src=URL.createObjectURL(r.blob);th.textContent='';th.appendChild(im)}).catch(function(){th.textContent='n/d'})
   })}
+function attPick(file){
+  var o=mk('div');o.style.cssText='position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center';
+  var c=mk('div','card');c.style.cssText='width:100%;max-width:520px;max-height:80vh;overflow:auto;margin:0;border-radius:18px 18px 0 0';
+  c.appendChild(mk('div','k','A quale spesa colleghi "'+file.name+'"?'));
+  var list=entries.filter(function(e){return e.t==='spesa'&&e.d.slice(0,7)===amon}).sort(function(a,b){return b.d.localeCompare(a.d)});
+  if(!list.length){var h=mk('div','hint','Nessuna spesa in questo mese: cambia mese in alto o aggiungi prima la spesa.');h.style.margin='8px 0';c.appendChild(h)}
+  list.forEach(function(e){var j=e.w?entries.filter(function(y){return y.id===e.w})[0]:null,cc=j?cl(j.c):null;
+    var b=mk('button','',fdm(e.d)+' \u00b7 '+(e.cat||'Spesa')+' \u00b7 '+eur.format(e.a)+(cc?' \u00b7 '+cc.name:'')+(e.att?' (ha gi\u00e0 un allegato)':''));b.style.cssText='display:block;width:100%;text-align:left;margin:6px 0';
+    b.onclick=function(){o.remove();attSet(e,file)};c.appendChild(b)});
+  var no=mk('button','','Annulla');no.style.cssText='display:block;width:100%;margin:10px 0 0';no.onclick=function(){o.remove()};c.appendChild(no);o.appendChild(c);document.body.appendChild(o)}
+$('attadd').onclick=function(){$('attnew').click()};
+$('attnew').onchange=function(){var f=$('attnew').files[0];$('attnew').value='';if(f)attPick(f)};
+async function attBarUpd(){
+  var b=$('attbar');if(!b)return;
+  var mine=entries.filter(function(e){return e.att}),tot=0;
+  for(var i=0;i<mine.length;i++){var a=mine[i].att;if(a.s){tot+=a.s;continue}try{var r=await ATT.local(mine[i].id);if(r&&r.blob){a.s=r.blob.size;tot+=r.blob.size}}catch(e){}}
+  var mb=function(n){return n<1048576?Math.round(n/1024)+' KB':n>=1073741824?(n/1073741824).toFixed(1).replace('.',',')+' GB':(n/1048576).toFixed(1).replace('.',',')+' MB'};
+  var u=0,q=0;try{if(navigator.storage&&navigator.storage.estimate){var es=await navigator.storage.estimate();u=es.usage||0;q=es.quota||0}}catch(e){}
+  b.textContent='';var t=mk('div','',(q?'Spazio sul dispositivo: '+mb(Math.max(q-u,0))+' disponibili su '+mb(q):'Spazio sul dispositivo: non disponibile')+' \u00b7 Allegati: '+mine.length+' ('+mb(tot)+')');b.appendChild(t);
+  if(q){var bar=mk('div','bar'),fl=mk('i');fl.style.width=Math.max(1,Math.min(100,u/q*100))+'%';bar.appendChild(fl);b.appendChild(bar);b.appendChild(mk('div','hint','Usato dall\u2019app: '+mb(u)))}
+}
 $('aprev').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()-1);amon=d.toISOString().slice(0,7);renderAtts()};
 $('anext').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()+1);amon=d.toISOString().slice(0,7);renderAtts()};
 var LG={busy:false,fail:{}};
