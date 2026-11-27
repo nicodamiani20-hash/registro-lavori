@@ -331,13 +331,17 @@ body:not(.v-pc) .brand h1{font-size:min(26px,4.6vw)!important}
 body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s both}
 @keyframes splApp{from{opacity:0;transform:scale(.965) translateY(10px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#splash,#splbox,#spltit{animation-duration:.01s;animation-delay:.4s}}
+.lgb{position:relative;width:64px;height:64px;border-radius:14px;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.5);display:flex;align-items:flex-end;padding:5px 7px;box-sizing:border-box;color:#fff;font:700 18px/1 system-ui,-apple-system,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.6);cursor:pointer}
+.lgb::after{content:'';position:absolute;left:50%;bottom:-11px;margin-left:-7px;border:7px solid transparent;border-top-color:#fff;border-bottom:0}
+.lgc.hl{outline:2px solid var(--ac)}
+.lgd{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.lgd span{background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:5px 11px;font-size:13px}
 </style>
 </head>
 <body>
 <div id="splash" aria-hidden="true"><div id="splbox"><img id="splimg" alt="" width="132" height="132"><div id="spltit">REGISTRO LAVORI</div></div></div>
 <main>
 <div class="brand"><h1>Registro Lavori</h1><button id="mbtn" aria-label="Menu" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><button id="vbtn" aria-label="Vista" title="Vista: telefono o PC">▯</button><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button><div id="vmenu"></div></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b13">Allegati</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b14">Luoghi</button><button id="b13">Allegati</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -451,6 +455,11 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s10" style="display:none">
   <div class="card"><div class="k" style="margin-bottom:8px">Elenco Costi</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
+</section>
+
+<section id="s14" style="display:none">
+  <div class="card" style="padding:0;overflow:hidden"><div id="lgmap" style="height:56vh;min-height:320px;background:#16181d"></div></div>
+  <div id="lgL"></div>
 </section>
 
 <section id="s13" style="display:none">
@@ -604,6 +613,39 @@ function renderAtts(){
   })}
 $('aprev').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()-1);amon=d.toISOString().slice(0,7);renderAtts()};
 $('anext').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()+1);amon=d.toISOString().slice(0,7);renderAtts()};
+var LG={map:null,layer:null,coords:{},bad:{},busy:false};
+function lgRange(a,b){var o={day:'2-digit',month:'short'},f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',o).replace('.','')};var y=b.slice(0,4);return a===b?f(a)+' '+y:(a.slice(0,4)===y?f(a)+' \u2013 '+f(b)+' '+y:f(a)+' '+a.slice(0,4)+' \u2013 '+f(b)+' '+y)}
+function lgGroups(){var g={};entries.forEach(function(e){if(e.t!=='lavoro'||!e.loc||!e.loc.trim())return;var k=e.loc.trim().toLowerCase().replace(/\s+/g,' ');(g[k]=g[k]||{name:e.loc.trim(),days:[],cl:{}}).days.push(e.d);g[k].cl[e.c]=(g[k].cl[e.c]||0)+1});
+  return Object.keys(g).map(function(k){var o=g[k];o.key=k;o.days=o.days.filter(function(d,i,a){return a.indexOf(d)===i}).sort();var best=0,bc=null;for(var c in o.cl)if(o.cl[c]>best){best=o.cl[c];bc=+c}o.c=bc;return o}).sort(function(a,b){return b.days.length-a.days.length||a.name.localeCompare(b.name)})}
+function lgRanges(days){var r=[],a=days[0],p=days[0];for(var i=1;i<=days.length;i++){var d=days[i];if(d&&(new Date(d+'T12:00:00')-new Date(p+'T12:00:00'))===86400000){p=d;continue}r.push([a,p]);a=d;p=d}return r}
+function renderLuoghi(){
+  var G=lgGroups(),L=$('lgL');L.textContent='';
+  if(!G.length){var h=mk('div','hint','Nessun luogo: aggiungi il luogo quando inserisci un lavoro.');h.style.cssText='text-align:center;padding:24px 0';L.appendChild(h)}
+  var tot=mk('div','hint',G.length+(G.length===1?' luogo':' luoghi')+' \u00b7 '+G.reduce(function(a,g){return a+g.days.length},0)+' giornate');tot.style.cssText='margin:12px 4px 8px';if(G.length)L.appendChild(tot);
+  G.forEach(function(g){var c=g.c?cl(g.c):null;
+    var cd=mk('div','card lgc');cd.id='lg_'+g.key.replace(/[^a-z0-9]/g,'');
+    var h=mk('div');h.style.cssText='display:flex;justify-content:space-between;gap:10px;align-items:baseline';
+    var t=mk('div','',g.name);t.style.cssText='font-weight:700;font-size:17px';var n=mk('div','hint',g.days.length+(g.days.length===1?' giorno':' giorni'));n.style.whiteSpace='nowrap';h.appendChild(t);h.appendChild(n);cd.appendChild(h);
+    if(c){var cc=mk('div','hint');cc.style.marginTop='4px';var dt=mk('i','dot');dt.style.background=c.color;cc.appendChild(dt);cc.appendChild(document.createTextNode(' '+c.name));cd.appendChild(cc)}
+    var dd=mk('div','lgd');lgRanges(g.days).slice().reverse().forEach(function(r){dd.appendChild(mk('span','',lgRange(r[0],r[1])))});cd.appendChild(dd);
+    if(LG.bad[g.key])cd.appendChild(mk('div','hint','Posizione non trovata sulla mappa')).style.marginTop='8px';
+    L.appendChild(cd)});
+  lgMap(G)}
+async function lgMap(G){
+  try{await window.__loadLeaflet()}catch(e){$('lgmap').textContent='Mappa non caricata: controlla la connessione';return}
+  if(!LG.map){LG.map=L.map('lgmap',{zoomControl:false,attributionControl:true}).setView([42.5,12.5],5);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abcd',attribution:'\u00a9 OpenStreetMap \u00a9 CARTO'}).addTo(LG.map);LG.layer=L.layerGroup().addTo(LG.map)}
+  setTimeout(function(){LG.map.invalidateSize()},150);
+  function draw(fit){LG.layer.clearLayers();var pts=[];G.forEach(function(g){var v=LG.coords[g.key];if(!v)return;pts.push([v[1],v[0]]);var c=g.c?cl(g.c):null,col=c?c.color:'#3d8bff';
+    var ic=L.divIcon({className:'',html:'<div class="lgb" style="background:linear-gradient(160deg,'+col+',#15161a)">'+g.days.length+'</div>',iconSize:[64,64],iconAnchor:[32,75]});
+    L.marker([v[1],v[0]],{icon:ic,title:g.name}).on('click',function(){var el=document.getElementById('lg_'+g.key.replace(/[^a-z0-9]/g,''));if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('hl');setTimeout(function(){el.classList.remove('hl')},1800)}}).addTo(LG.layer)});
+    if(fit&&pts.length)LG.map.fitBounds(pts,{padding:[60,60],maxZoom:11})}
+  G.forEach(function(g){if(!LG.coords[g.key]){var v=window.__geoGet(g.name);if(v)LG.coords[g.key]=v}});
+  draw(true);
+  if(LG.busy)return;LG.busy=true;
+  try{for(var i=0;i<G.length&&tab===14;i++){var g=G[i];if(LG.coords[g.key]||LG.bad[g.key])continue;
+    try{LG.coords[g.key]=await window.__geo(g.name);draw(true)}catch(e){if(e&&e.code==='nf'){LG.bad[g.key]=1}else break}
+    await new Promise(function(r){setTimeout(r,1100)})}}finally{LG.busy=false}
+}
 function entryRow(x,showDate){
   var r=mk('div','it'),c=x.c?cl(x.c):null;
   var d=mk('span','d');
@@ -644,12 +686,12 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
-  [0,1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
-  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12,13].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
+  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12,13,14].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
   if($('pa').value==='')setAmt('pSel','pa');
   if(type==='lavoro'&&$('amt').value==='')setAmt('cSel','amt');
-  renderCal();renderClients();renderRecap();renderSpese();renderDash();renderUnpaid();renderTax();renderF24();renderImp();if(tab===13)renderAtts();if(tab===9)renderBk();
+  renderCal();renderClients();renderRecap();renderSpese();renderDash();renderUnpaid();renderTax();renderF24();renderImp();if(tab===13)renderAtts();if(tab===14)renderLuoghi();if(tab===9)renderBk();
 }
 function blockOf(x){
   var a=x.d,b=x.d;
@@ -1165,7 +1207,7 @@ function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rat
 function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';if(window.__kw1)window.__kw1.style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
-[1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(function(n){$('b'+n).onclick=function(){tab=n;if(n===13)amon=null;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(function(n){$('b'+n).onclick=function(){tab=n;if(n===13)amon=null;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
@@ -1228,6 +1270,7 @@ function setPaid(x,v,msg){
   window.kmCalc=async function(from,to){var a=await geo(from),b=await geo(to);return route(a,b)};
   function short(r){var a=r.address||{},st=a.road||a.pedestrian||a.square||a.neighbourhood||'',hn=a.house_number?' '+a.house_number:'',ct=a.city||a.town||a.village||a.municipality||a.hamlet||'',pv=a.county&&a.state_code?'':'';
     var nm=r.name&&r.name!==st?r.name:'';var parts=[];if(nm)parts.push(nm);if(st)parts.push(st+hn);if(ct)parts.push(ct);var s=parts.join(', ');return s||String(r.display_name||'').split(',').slice(0,3).join(',').trim()}
+  window.__geo=geo;window.__loadLeaflet=function(){return loadLeaflet()};window.__geoGet=function(q){try{return (JSON.parse(ls(CK,'{}'))||{})[q.toLowerCase().replace(/\s+/g,' ').trim()]||null}catch(e){return null}};
   window.__geoPut=function(q,v){var cache={};try{cache=JSON.parse(ls(CK,'{}'))||{}}catch(e){}cache[q.toLowerCase().replace(/\s+/g,' ').trim()]=v;ss(CK,JSON.stringify(cache))};
   async function nsearch(q){var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&accept-language=it&countrycodes=it,ch,fr,at,si,de&q='+encodeURIComponent(q));return r.json()}
   function loadLeaflet(){return new Promise(function(ok,ko){if(window.L)return ok();var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(l);var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';s.onload=ok;s.onerror=ko;document.head.appendChild(s)})}
