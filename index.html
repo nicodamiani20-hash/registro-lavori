@@ -652,7 +652,7 @@ function openBlob(r){
   if(isPdf){var fr=document.createElement('iframe');fr.src=u;fr.style.cssText='width:100%;height:100%;border:0;background:#fff';bd.appendChild(fr)}
   else{var im=document.createElement('img');im.src=u;im.style.cssText='max-width:100%;height:auto;display:block';bd.appendChild(im)}
   o.appendChild(bd);o.style.display='flex'}
-var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0]];
+var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0],['fgen','Formazione generale lavoratori',1],['fspec','Formazione specifica rischio basso',1],['med','Certificato medico',1]];
 function docMeta(){if(!company.docs)company.docs={};return company.docs}
 function renderDocs(){
   var R=$('docR');if(!R)return;R.textContent='';var cd=mk('div','card');R.appendChild(cd);
