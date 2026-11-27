@@ -649,6 +649,12 @@ async function attBarUpd(){
   var u=0,q=0;try{if(navigator.storage&&navigator.storage.estimate){var es=await navigator.storage.estimate();u=es.usage||0;q=es.quota||0}}catch(e){}
   b.textContent='';var t=mk('div','',(q?'Spazio sul dispositivo: '+mb(Math.max(q-u,0))+' disponibili su '+mb(q):'Spazio sul dispositivo: non disponibile')+' \u00b7 Allegati: '+mine.length+' ('+mb(tot)+')');b.appendChild(t);
   if(q){var bar=mk('div','bar'),fl=mk('i');fl.style.width=Math.max(1,Math.min(100,u/q*100))+'%';bar.appendChild(fl);b.appendChild(bar);b.appendChild(mk('div','hint','Usato dall\u2019app: '+mb(u)))}
+  var fbTxt='';
+  if(window.__uid){var js=0;try{js=JSON.stringify(snap()).length}catch(e){}var est=Math.round(tot*4/3)+js*15,LIM=1073741824;
+    var t2=mk('div','',null);t2.style.marginTop='12px';t2.textContent='Spazio su Firebase (stima): '+mb(Math.max(LIM-est,0))+' disponibili su 1 GB gratuito \u00b7 usati circa '+mb(est);
+    var bar2=mk('div','bar'),f2=mk('i');f2.style.width=Math.max(1,Math.min(100,est/LIM*100))+'%';bar2.appendChild(f2);b.appendChild(t2);b.appendChild(bar2);
+    b.appendChild(mk('div','hint','Calcolo da allegati, dati e copie di sicurezza. Il valore esatto \u00e8 nella console Firebase (Firestore \u203a Utilizzo).'))}
+  else b.appendChild(Object.assign(mk('div','hint'),{textContent:'Spazio su Firebase: accedi con il tuo account per vederlo.'})).style.marginTop='10px';
 }
 $('aprev').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()-1);amon=d.toISOString().slice(0,7);renderAtts()};
 $('anext').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()+1);amon=d.toISOString().slice(0,7);renderAtts()};
