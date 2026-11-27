@@ -321,6 +321,8 @@ body:not(.v-pc) .brand h1{font-size:min(26px,4.6vw)!important}
 .cell{transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
 .cell.sel,body.pal .cell.sel,body.mod .cell.sel{outline:none!important;border-color:var(--ac)!important;background:linear-gradient(160deg,color-mix(in srgb,var(--ac) 26%,transparent),color-mix(in srgb,var(--ac) 7%,transparent))!important;box-shadow:0 0 0 1px var(--ac),0 6px 18px -4px color-mix(in srgb,var(--ac) 55%,transparent);transform:none;position:relative;z-index:auto}
 .cell.sel .n{font-weight:700}
+.dd{position:relative}.ddb,.ddo{display:flex;align-items:center;gap:6px;width:100%;text-align:left;font-size:17px;padding:14px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--fg,inherit)}.ddb .ddc{margin-left:auto;opacity:.7}
+.ddl{margin-top:6px;border:1px solid var(--bd);border-radius:14px;background:var(--card);padding:4px;max-height:50vh;overflow:auto;box-shadow:0 10px 28px rgba(0,0,0,.4)}.ddo{border:0;background:transparent;border-radius:10px}.ddo.on{background:color-mix(in srgb,var(--ac) 18%,transparent)}.ddo .dot,.ddb .dot{flex:none}
 .chip,body.pal .chip,body.mod .chip{border-radius:10px!important;padding-left:6px;padding-right:6px;box-shadow:0 1px 3px rgba(0,0,0,.25)}body.calv .chip{padding:3px 7px}
 #splash{position:fixed;inset:0;z-index:99999;background:#0b0b0d;display:flex;align-items:center;justify-content:center;animation:splBg .55s ease 2.15s forwards;will-change:opacity}
 #splbox{display:flex;flex-direction:column;align-items:center;gap:26px;animation:splLogo 2.85s cubic-bezier(.22,.8,.2,1) forwards;will-change:transform,opacity}
@@ -1572,12 +1574,13 @@ function setPaid(x,v,msg){
     if(W.step===0){
       if(!clients.length)Z.appendChild(mk('div','hint','Non hai ancora clienti: aggiungine uno nella scheda Clienti.'));
       if(clients.length){
-        var sl=document.createElement('select');sl.className='wsel';sl.style.cssText='width:100%;font-size:17px;padding:14px;border-radius:12px';
-        var o0=mk('option','','Scegli la ditta…');o0.value='';sl.appendChild(o0);
-        byDays().forEach(function(c){var o=mk('option','',c.name+' · '+eur.format(c.rate)+'/giorno');o.value=c.id;sl.appendChild(o)});
-        sl.value=W.c||'';
-        sl.onchange=function(){var c=cl(+sl.value);if(!c)return;if(W.c!==c.id){W.c=c.id;W.a=c.rate}nxt();draw()};
-        Z.appendChild(sl);
+        var dw=mk('div','dd'),cur=cl(W.c),dt=mk('button','ddb');dt.type='button';
+        var fillB=function(c){dt.textContent='';if(c){var d0=mk('i','dot');d0.style.background=c.color;dt.appendChild(d0);dt.appendChild(document.createTextNode(' '+c.name+' · '+eur.format(c.rate)+'/giorno'))}else dt.appendChild(document.createTextNode('Scegli la ditta…'));dt.appendChild(mk('span','ddc','▾'))};
+        fillB(cur);var dl=mk('div','ddl');dl.style.display='none';
+        byDays().forEach(function(c){var o=mk('button','ddo'+(W.c===c.id?' on':''));o.type='button';var d1=mk('i','dot');d1.style.background=c.color;o.appendChild(d1);o.appendChild(document.createTextNode(' '+c.name+' · '+eur.format(c.rate)+'/giorno'));
+          o.onclick=function(){if(W.c!==c.id){W.c=c.id;W.a=c.rate}nxt();draw()};dl.appendChild(o)});
+        dt.onclick=function(){dl.style.display=dl.style.display==='none'?'':'none'};
+        dw.appendChild(dt);dw.appendChild(dl);Z.appendChild(dw);
         if(W.c){var nx=mk('div','wnav');var nb0=mk('button','pri','Avanti');nb0.onclick=function(){nxt();draw()};nx.appendChild(nb0);Z.appendChild(nx)}
       }
     }else if(W.step===1){
