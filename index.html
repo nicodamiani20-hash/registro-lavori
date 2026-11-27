@@ -466,7 +466,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s13" style="display:none">
   <div class="card"><div class="nav"><button id="aprev" aria-label="Mese precedente">‹</button><b id="alabel"></b><button id="anext" aria-label="Mese successivo">›</button></div></div>
-  <div class="card"><input type="file" id="attnew" accept="image/*,application/pdf" style="display:none"><button class="pri" id="attadd" style="margin:0">Carica un allegato</button><div class="hint" style="margin-top:8px">Scegli un file, poi la spesa a cui collegarlo. Se la spesa ha già un allegato, viene sostituito.</div></div>
+  <div class="card"><input type="file" id="attnew" accept="image/*,application/pdf" style="display:none"><input type="file" id="attrep" accept="image/*,application/pdf" style="display:none"><button class="pri" id="attadd" style="margin:0">Carica un allegato</button><div class="hint" style="margin-top:8px">Scegli un file, poi la spesa a cui collegarlo. Se la spesa ha già un allegato, viene sostituito.</div></div>
   <div id="attL"></div>
   <div id="attbar"></div>
 </section>
@@ -622,10 +622,9 @@ function renderAtts(){
     function getB(){return cache?Promise.resolve(cache):ATT.get(e.id).then(function(r){cache=r;return r})}
     ob.onclick=function(){getB().then(function(r){if(!r){status('Allegato non disponibile: verifica la connessione');return}window.open(URL.createObjectURL(r.blob),'_blank')})};
     var col=mk('div');col.style.cssText='display:flex;flex-direction:column;gap:6px';ob.style.padding='8px 14px';col.appendChild(ob);
-    var fi=document.createElement('input');fi.type='file';fi.accept='image/*,application/pdf';fi.style.display='none';fi.onchange=function(){if(fi.files[0])attSet(e,fi.files[0])};
-    var sb=mk('button','','Sostituisci');sb.style.cssText='margin:0;width:auto;padding:8px 14px';sb.onclick=function(){fi.click()};
+    var sb=mk('button','','Sostituisci');sb.style.cssText='margin:0;width:auto;padding:8px 14px';sb.onclick=function(){window.__attT=e;$('attrep').click()};
     var rb=mk('button','','Rimuovi');rb.style.cssText='margin:0;width:auto;padding:8px 14px';rb.onclick=function(){askConfirm('Rimuovere questo allegato?',[e.att.n],function(){ATT.del(e.id);delete e.att;save();render();status('Allegato rimosso')})};
-    col.appendChild(sb);col.appendChild(rb);col.appendChild(fi);
+    col.appendChild(sb);col.appendChild(rb);
     cd.appendChild(th);cd.appendChild(tx);cd.appendChild(col);L.appendChild(cd);
     if(e.att.t!=='application/pdf')getB().then(function(r){if(!r){th.textContent='n/d';return}var im=document.createElement('img');im.style.cssText='width:100%;height:100%;object-fit:cover';im.src=URL.createObjectURL(r.blob);th.textContent='';th.appendChild(im)}).catch(function(){th.textContent='n/d'})
   })}
@@ -640,6 +639,7 @@ function attPick(file){
     b.onclick=function(){o.remove();attSet(e,file)};c.appendChild(b)});
   var no=mk('button','','Annulla');no.style.cssText='display:block;width:100%;margin:10px 0 0';no.onclick=function(){o.remove()};c.appendChild(no);o.appendChild(c);document.body.appendChild(o)}
 $('attadd').onclick=function(){$('attnew').click()};
+$('attrep').onchange=function(){var f=$('attrep').files[0],t=window.__attT;$('attrep').value='';if(f&&t)attSet(t,f)};
 $('attnew').onchange=function(){var f=$('attnew').files[0];$('attnew').value='';if(f)attPick(f)};
 async function attBarUpd(){
   var b=$('attbar');if(!b)return;
