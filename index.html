@@ -461,6 +461,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s15" style="display:none">
   <div id="coR"></div>
+  <input type="file" id="cologo" accept="image/*" style="display:none">
 </section>
 
 <section id="s14" style="display:none">
@@ -538,7 +539,10 @@ async function faceAuth(){
 function coLock(){CO.un=false;if(tab===15)renderCo()}
 document.addEventListener('visibilitychange',function(){if(document.hidden){CO.t=Date.now()}else if(CO.un&&Date.now()-CO.t>60000)coLock()});
 var COF=[['n','Nome azienda','text'],['t','Titolare','text'],['d','Descrizione attività','text'],['a','Indirizzo (via e numero)','text'],['cap','CAP','text'],['c','Città','text'],['p','Provincia','text'],['iva','Partita IVA','text'],['cf','Codice fiscale','text'],['forma','Forma giuridica (piè di pagina)','text'],['rea','REA / Albo imprese artigiane','text'],['tel','Telefono','tel'],['em','Email','email'],['pec','PEC','email'],['sdi','Codice destinatario SDI','text'],['iban','IBAN','text'],['web','Sito web','text']];
-function coLogoPrep(file){return new Promise(function(ok,ko){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){var k=Math.min(1,480/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL(/png|svg|webp/.test(file.type)?'image/png':'image/jpeg',.88))};im.onerror=function(){URL.revokeObjectURL(u);ko()};im.src=u})}
+function coLogoPrep(file){return new Promise(function(ok,ko){var nm=file.name||'',png=/png|svg|webp|gif/.test(file.type)||/\.(png|webp|gif|svg)$/i.test(nm);
+  function fin(src,w,h,rel){var k=Math.min(1,480/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));var x=c.getContext('2d');if(!png){x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height)}x.drawImage(src,0,0,c.width,c.height);if(rel)rel();ok(c.toDataURL(png?'image/png':'image/jpeg',.88))}
+  function viaImg(){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){fin(im,im.naturalWidth||im.width||100,im.naturalHeight||im.height||100,function(){URL.revokeObjectURL(u)})};im.onerror=function(){URL.revokeObjectURL(u);ko('decode')};im.src=u}
+  if(window.createImageBitmap){createImageBitmap(file).then(function(bm){fin(bm,bm.width,bm.height,function(){try{bm.close()}catch(e){}})}).catch(viaImg)}else viaImg()})}
 var CO_DEF={forma:'Impresa artigiana individuale',n:'Damiani Nicol\u00f2',t:'Nicol\u00f2 Damiani',d:'Lighting setup, programming & networking for events',a:'Cascina Recolo, 6',cap:'25023',c:'Gottolengo',p:'BS',iva:'04198740989',cf:'DMNNCL99S20E884X',rea:'BS - 596149',tel:'+39 334 125 6779',em:'nicodamiani20@gmail.com',pec:'pecdamiani@legalmail.it'};
 function coData(){return Object.keys(company).length?company:CO_DEF}
 function coLogoSrc(){return coData().logo||LOGO_ND}
@@ -568,6 +572,9 @@ function coHeadEl(){var c=coData(),w=mk('div');w.style.cssText='background:#fff;
 function coFootEl(){var c=coData(),fm=('forma' in c)?c.forma:CO_DEF.forma,w=mk('div');w.style.cssText='background:#fff;color:#555;font-size:10px;margin:18px -16px -16px;padding:10px 16px 12px;border-top:1px solid #ddd;border-radius:0 0 6px 6px;line-height:1.6';
   var r=mk('div');r.style.cssText='display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap';[c.iva?'P. IVA '+c.iva:'',c.cf?'C.F. '+c.cf:'',c.rea?'REA '+c.rea:'',c.pec?'PEC '+c.pec:''].filter(Boolean).forEach(function(x){r.appendChild(mk('span','',x))});w.appendChild(r);
   var l2=[fm,coAddr(c).join(', ')].filter(Boolean).join(' \u00b7 ');if(l2)w.appendChild(mk('div','',l2));return w}
+$('cologo').onchange=async function(){var f=$('cologo').files[0];$('cologo').value='';if(!f)return;
+  try{if(Object.keys(company).length===0)company=Object.assign({},CO_DEF);company.logo=await coLogoPrep(f);save();coBrand();if(window.__coShow)window.__coShow();status('Logo aggiornato')}
+  catch(e){status('Logo non caricato: '+(e==='decode'?'immagine non leggibile (prova una foto JPEG o PNG)':((e&&e.message)||e)))}};
 function renderCo(){
   var R=$('coR');R.textContent='';var cd=mk('div','card');R.appendChild(cd);
   function inp(type,ph){var i=document.createElement('input');i.type=type;i.placeholder=ph;i.style.cssText='display:block;width:100%;box-sizing:border-box;margin:0 0 10px;font-size:17px;padding:14px;border-radius:12px';return i}
@@ -591,11 +598,10 @@ function renderCo(){
   var lg=mk('div');lg.style.cssText='display:flex;align-items:center;gap:14px;margin:10px 0 14px';
   var pv=mk('div');pv.style.cssText='width:88px;height:88px;border-radius:16px;background:var(--bg);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:12px;color:var(--mut);text-align:center';
   function showLogo(){pv.textContent='';if(company.logo){var im=document.createElement('img');im.src=company.logo;im.style.cssText='max-width:100%;max-height:100%;object-fit:contain';pv.appendChild(im)}else pv.textContent='Nessun logo'}showLogo();
-  var lb=document.createElement('input');lb.type='file';lb.accept='image/*';lb.style.display='none';
-  lb.onchange=async function(){var f=lb.files[0];lb.value='';if(!f)return;try{company.logo=await coLogoPrep(f);save();showLogo();status('Logo salvato')}catch(e){status('Immagine non leggibile')}};
+  window.__coShow=showLogo;
   var bx=mk('div');bx.style.cssText='display:flex;flex-direction:column;gap:8px';
-  var up=mk('button','','Carica logo');up.style.cssText='margin:0;width:auto';up.onclick=function(){lb.click()};var rm=mk('button','','Rimuovi logo');rm.style.cssText='margin:0;width:auto';rm.onclick=function(){delete company.logo;save();showLogo()};
-  bx.appendChild(up);bx.appendChild(rm);lg.appendChild(pv);lg.appendChild(bx);lg.appendChild(lb);cd.appendChild(lg);
+  var up=mk('button','','Carica logo');up.style.cssText='margin:0;width:auto';up.onclick=function(){$('cologo').click()};var rm=mk('button','','Rimuovi logo');rm.style.cssText='margin:0;width:auto';rm.onclick=function(){delete company.logo;save();coBrand();showLogo();status('Logo rimosso')};
+  bx.appendChild(up);bx.appendChild(rm);lg.appendChild(pv);lg.appendChild(bx);cd.appendChild(lg);
   var ins={};
   COF.forEach(function(f){var l=mk('div','k',f[1]);l.style.margin='6px 2px 4px';var i=inp(f[2],f[1]);i.value=company[f[0]]||'';i.setAttribute('autocomplete','off');if(f[0]==='iban'||f[0]==='sdi'||f[0]==='p')i.style.textTransform='uppercase';ins[f[0]]=i;cd.appendChild(l);cd.appendChild(i)});
   var sv=mk('button','pri','Salva i dati');sv.style.cssText='margin:6px 0 0;width:100%';
