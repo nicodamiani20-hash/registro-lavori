@@ -459,7 +459,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 </section>
 
 <section id="s14" style="display:none">
-  <div class="card" style="padding:0;overflow:hidden"><div id="lgmap" style="height:56vh;min-height:320px;background:#16181d"></div></div>
+  <div id="lgR"></div>
   <div id="lgL"></div>
 </section>
 
@@ -614,42 +614,49 @@ function renderAtts(){
   })}
 $('aprev').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()-1);amon=d.toISOString().slice(0,7);renderAtts()};
 $('anext').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()+1);amon=d.toISOString().slice(0,7);renderAtts()};
-var LG={map:null,layer:null,coords:{},bad:{},busy:false};
+var LG={busy:false,fail:{}};
 function lgRange(a,b){var o={day:'2-digit',month:'short'},f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',o).replace('.','')};var y=b.slice(0,4);return a===b?f(a)+' '+y:(a.slice(0,4)===y?f(a)+' \u2013 '+f(b)+' '+y:f(a)+' '+a.slice(0,4)+' \u2013 '+f(b)+' '+y)}
 function lgGroups(){var g={};entries.forEach(function(e){if(e.t!=='lavoro'||!e.loc||!e.loc.trim())return;var k=e.loc.trim().toLowerCase().replace(/\s+/g,' ');(g[k]=g[k]||{name:e.loc.trim(),days:[],cl:{}}).days.push(e.d);g[k].cl[e.c]=(g[k].cl[e.c]||0)+1});
   return Object.keys(g).map(function(k){var o=g[k];o.key=k;o.days=o.days.filter(function(d,i,a){return a.indexOf(d)===i}).sort();var best=0,bc=null;for(var c in o.cl)if(o.cl[c]>best){best=o.cl[c];bc=+c}o.c=bc;return o}).sort(function(a,b){return b.days.length-a.days.length||a.name.localeCompare(b.name)})}
 function lgRanges(days){var r=[],a=days[0],p=days[0];for(var i=1;i<=days.length;i++){var d=days[i];if(d&&(new Date(d+'T12:00:00')-new Date(p+'T12:00:00'))===86400000){p=d;continue}r.push([a,p]);a=d;p=d}return r}
+function lgInfoGet(){try{return JSON.parse(localStorage.getItem('geo_info')||'{}')||{}}catch(e){return {}}}
+function lgInfoPut(k,v){var o=lgInfoGet();o[k]=v;try{localStorage.setItem('geo_info',JSON.stringify(o))}catch(e){}}
+function lgPick(r){var a=r.address||{};return {country:a.country||'',city:a.city||a.town||a.village||a.municipality||a.hamlet||a.county||''}}
+async function lgResolve(g){
+  var c=window.__geoGet(g.name),j=null;
+  if(c){var r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=10&accept-language=it&lat='+c[1]+'&lon='+c[0]);j=await r.json();if(j&&j.address)return lgPick(j)}
+  var vs=[g.name,g.name+', Italia'];
+  for(var i=0;i<vs.length;i++){var r2=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&accept-language=it&q='+encodeURIComponent(vs[i]));var a=await r2.json();if(a&&a.length)return lgPick(a[0]);await new Promise(function(z){setTimeout(z,1100)})}
+  return null}
 function renderLuoghi(){
-  var G=lgGroups(),L=$('lgL');L.textContent='';
-  if(!G.length){var h=mk('div','hint','Nessun luogo: aggiungi il luogo quando inserisci un lavoro.');h.style.cssText='text-align:center;padding:24px 0';L.appendChild(h)}
-  var tot=mk('div','hint',G.length+(G.length===1?' luogo':' luoghi')+' \u00b7 '+G.reduce(function(a,g){return a+g.days.length},0)+' giornate');tot.style.cssText='margin:12px 4px 8px';if(G.length)L.appendChild(tot);
-  G.forEach(function(g){var c=g.c?cl(g.c):null;
-    var cd=mk('div','card lgc');cd.id='lg_'+g.key.replace(/[^a-z0-9]/g,'');
+  var G=lgGroups(),L=$('lgL'),R=$('lgR'),inf=lgInfoGet();L.textContent='';R.textContent='';
+  if(!G.length){var h=mk('div','hint','Nessun luogo: aggiungi il luogo quando inserisci un lavoro.');h.style.cssText='text-align:center;padding:24px 0';L.appendChild(h);return}
+  var Y={},unk=0,pend=0;
+  G.forEach(function(g){var i=inf[g.key];if(!i){if(LG.fail[g.key])unk++;else pend++;return}
+    g.days.forEach(function(d){var y=d.slice(0,4),o=Y[y]=Y[y]||{co:{},ci:{},days:0};o.days++;if(i.country)o.co[i.country]=1;if(i.city)o.ci[i.city+'|'+i.country]=(o.ci[i.city+'|'+i.country]||0)+1})});
+  Object.keys(Y).sort().reverse().forEach(function(y){var o=Y[y],nc=Object.keys(o.co).length,nci=Object.keys(o.ci).length;
+    var cd=mk('div','card');var h=mk('div');h.style.cssText='display:flex;justify-content:space-between;align-items:baseline';
+    h.appendChild(mk('div','',y)).style.cssText='font-size:22px;font-weight:700';h.appendChild(mk('div','hint',o.days+(o.days===1?' giornata':' giornate')));cd.appendChild(h);
+    var g2=mk('div','grid');g2.style.marginTop='10px';
+    [[nc,nc===1?'Stato':'Stati'],[nci,nci===1?'Citt\u00e0':'Citt\u00e0']].forEach(function(p){var b=mk('div');b.appendChild(mk('div','k',p[1]));var v=mk('div','v',String(p[0]));v.style.fontSize='30px';b.appendChild(v);g2.appendChild(b)});cd.appendChild(g2);
+    var lst=mk('div','lgd');Object.keys(o.co).sort().forEach(function(c){lst.appendChild(mk('span','',c))});cd.appendChild(lst);
+    var l2=mk('div','lgd');Object.keys(o.ci).sort().forEach(function(k){l2.appendChild(mk('span','',k.split('|')[0]))});cd.appendChild(l2);R.appendChild(cd)});
+  if(pend||unk){var st=mk('div','hint',pend?'Riconosco '+pend+(pend===1?' luogo':' luoghi')+'\u2026':unk+(unk===1?' luogo non riconosciuto':' luoghi non riconosciuti')+': scrivi il luogo con la citt\u00e0, ad esempio \u201cTeatro Grande, Brescia\u201d');st.style.cssText='margin:4px 4px 12px';R.appendChild(st)}
+  var tot=mk('div','hint',G.length+(G.length===1?' luogo':' luoghi')+' \u00b7 '+G.reduce(function(a,g){return a+g.days.length},0)+' giornate');tot.style.cssText='margin:12px 4px 8px';L.appendChild(tot);
+  G.forEach(function(g){var c=g.c?cl(g.c):null,i=inf[g.key];
+    var cd=mk('div','card lgc');
     var h=mk('div');h.style.cssText='display:flex;justify-content:space-between;gap:10px;align-items:baseline';
     var t=mk('div','',g.name);t.style.cssText='font-weight:700;font-size:17px';var n=mk('div','hint',g.days.length+(g.days.length===1?' giorno':' giorni'));n.style.whiteSpace='nowrap';h.appendChild(t);h.appendChild(n);cd.appendChild(h);
+    if(i&&(i.city||i.country)){var pl=mk('div','hint',[i.city,i.country].filter(Boolean).join(', '));pl.style.marginTop='4px';cd.appendChild(pl)}
     if(c){var cc=mk('div','hint');cc.style.marginTop='4px';var dt=mk('i','dot');dt.style.background=c.color;cc.appendChild(dt);cc.appendChild(document.createTextNode(' '+c.name));cd.appendChild(cc)}
-    var dd=mk('div','lgd');lgRanges(g.days).slice().reverse().forEach(function(r){dd.appendChild(mk('span','',lgRange(r[0],r[1])))});cd.appendChild(dd);
-    var has=!!(LG.coords[g.key]||window.__geoGet(g.name));
-    if(LG.bad[g.key]&&!has)cd.appendChild(mk('div','hint','Posizione non trovata sulla mappa')).style.marginTop='8px';
-    var pb=mk('button','',has?'Cambia posizione sulla mappa':'Scegli la posizione sulla mappa');pb.style.cssText='margin:10px 0 0;width:100%';
-    pb.onclick=function(){window.__openMap(g.name,function(lb,v){window.__geoPut(g.name,v);LG.coords[g.key]=v;delete LG.bad[g.key];renderLuoghi()})};cd.appendChild(pb);
-    L.appendChild(cd)});
-  lgMap(G)}
-async function lgMap(G){
-  try{await window.__loadLeaflet()}catch(e){$('lgmap').textContent='Mappa non caricata: controlla la connessione';return}
-  if(!LG.map&&!document.getElementById('lgmap')._leaflet_id){LG.map=L.map('lgmap',{zoomControl:false,attributionControl:true}).setView([42.5,12.5],5);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'\u00a9 OpenStreetMap'}).addTo(LG.map);LG.layer=L.layerGroup().addTo(LG.map)}
-  if(!LG.map)return;setTimeout(function(){LG.map.invalidateSize()},150);
-  function draw(fit){LG.layer.clearLayers();var pts=[];G.forEach(function(g){var v=LG.coords[g.key];if(!v)return;pts.push([v[1],v[0]]);var c=g.c?cl(g.c):null,col=c?c.color:'#3d8bff';
-    var ic=L.divIcon({className:'',html:'<div class="lgb" style="background:linear-gradient(160deg,'+col+',#15161a)">'+g.days.length+'</div>',iconSize:[64,64],iconAnchor:[32,75]});
-    L.marker([v[1],v[0]],{icon:ic,title:g.name}).on('click',function(){var el=document.getElementById('lg_'+g.key.replace(/[^a-z0-9]/g,''));if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('hl');setTimeout(function(){el.classList.remove('hl')},1800)}}).addTo(LG.layer)});
-    if(fit&&pts.length)LG.map.fitBounds(pts,{padding:[60,60],maxZoom:11})}
-  G.forEach(function(g){if(!LG.coords[g.key]){var v=window.__geoGet(g.name);if(v)LG.coords[g.key]=v}});
-  draw(true);
+    var dd=mk('div','lgd');lgRanges(g.days).slice().reverse().forEach(function(r){dd.appendChild(mk('span','',lgRange(r[0],r[1])))});cd.appendChild(dd);L.appendChild(cd)});
+  lgRun(G,inf)}
+async function lgRun(G,inf){
   if(LG.busy)return;LG.busy=true;
-  try{for(var i=0;i<G.length&&tab===14;i++){var g=G[i];if(LG.coords[g.key]||LG.bad[g.key])continue;
-    try{LG.coords[g.key]=await window.__geo(g.name);draw(true)}catch(e){if(e&&e.code==='nf'){LG.bad[g.key]=1}else break}
-    await new Promise(function(r){setTimeout(r,1100)})}}finally{LG.busy=false}
-}
+  try{for(var i=0;i<G.length&&tab===14;i++){var g=G[i];if(inf[g.key]||LG.fail[g.key])continue;
+    try{var v=await lgResolve(g);if(v&&(v.country||v.city)){lgInfoPut(g.key,v);inf[g.key]=v}else LG.fail[g.key]=1}catch(e){break}
+    await new Promise(function(r){setTimeout(r,1100)});
+    if(tab===14){LG.busy=false;renderLuoghi();return}}}finally{LG.busy=false}}
 function entryRow(x,showDate){
   var r=mk('div','it'),c=x.c?cl(x.c):null;
   var d=mk('span','d');
