@@ -523,7 +523,7 @@ function delEntry(id){
 function fillSel(s){
   var v=s.value;s.textContent='';
   if(!clients.length){s.appendChild(mk('option','','Nessun cliente: aggiungilo in "Clienti"'));s.value='';return}
-  clients.forEach(function(c){var o=mk('option','',c.name);o.value=c.id;s.appendChild(o)});
+  var nd={};entries.forEach(function(e){if(e.t==='lavoro')nd[e.c]=(nd[e.c]||0)+1});clients.slice().sort(function(a,b){return (nd[b.id]||0)-(nd[a.id]||0)||a.name.localeCompare(b.name)}).forEach(function(c){var o=mk('option','',c.name);o.value=c.id;s.appendChild(o)});
   if(v&&cl(+v))s.value=v;
 }
 function entryRow(x,showDate){
@@ -1196,6 +1196,7 @@ function setPaid(x,v,msg){
     if(!n){status('Giornate già presenti per questo cliente');return}
     var first=ds[0];ov=false;month=first.slice(0,7);save();render();
     status(n===1?'Lavoro aggiunto':n+' giornate aggiunte'+(k>0&&!c.kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''));reset();draw()}
+  function byDays(){var n={};entries.forEach(function(e){if(e.t==='lavoro')n[e.c]=(n[e.c]||0)+1});return clients.slice().sort(function(a,b){return (n[b.id]||0)-(n[a.id]||0)||a.name.localeCompare(b.name)})}
   function inp(type,val,ph,on,opt){var i=document.createElement('input');i.type=type;i.value=val==null?'':val;if(ph)i.placeholder=ph;if(opt){for(var k in opt)i.setAttribute(k,opt[k])}i.oninput=function(){on(i.value)};return i}
   function draw(){
     var Z=$('wz');if(!Z)return;Z.textContent='';if(!W)reset();
@@ -1206,7 +1207,7 @@ function setPaid(x,v,msg){
     var f=null;
     if(W.step===0){
       if(!clients.length)Z.appendChild(mk('div','hint','Non hai ancora clienti: aggiungine uno nella scheda Clienti.'));
-      clients.slice().sort(function(a,b){return a.name.localeCompare(b.name)}).forEach(function(c){
+      byDays().forEach(function(c){
         var b=mk('button','wbtn'+(W.c===c.id?' on':''));var d=mk('i','dot');d.style.background=c.color;b.appendChild(d);b.appendChild(document.createTextNode(' '+c.name+' · '+eur.format(c.rate)+'/giorno'));
         b.onclick=function(){if(W.c!==c.id){W.c=c.id;W.a=c.rate}nxt();draw()};Z.appendChild(b)})
     }else if(W.step===1){
