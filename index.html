@@ -337,7 +337,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 <div id="splash" aria-hidden="true"><div id="splbox"><img id="splimg" alt="" width="132" height="132"><div id="spltit">REGISTRO LAVORI</div></div></div>
 <main>
 <div class="brand"><h1>Registro Lavori</h1><button id="mbtn" aria-label="Menu" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><button id="vbtn" aria-label="Vista" title="Vista: telefono o PC">▯</button><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button><div id="vmenu"></div></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b13">Allegati</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -451,6 +451,11 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s10" style="display:none">
   <div class="card"><div class="k" style="margin-bottom:8px">Elenco Costi</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
+</section>
+
+<section id="s13" style="display:none">
+  <div class="card"><div class="nav"><button id="aprev" aria-label="Mese precedente">‹</button><b id="alabel"></b><button id="anext" aria-label="Mese successivo">›</button></div></div>
+  <div id="attL"></div>
 </section>
 
 <section id="s12" style="display:none">
@@ -574,6 +579,30 @@ async function addAtt(doc,ex,deco){
       doc.addPage();deco();doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Allegato: '+e.label+' – '+new Date(e.d+'T12:00:00').toLocaleDateString('it-IT')+(pg.length>1?' (pag. '+(k+1)+'/'+pg.length+')':''),15,48);doc.setTextColor(0);
       var bw=180,bh=210,sc=Math.min(bw/im.w,bh/im.h),w=im.w*sc,h=im.h*sc;doc.addImage(im.u,'JPEG',15+(bw-w)/2,54,w,h,undefined,'FAST')})}
 }
+var amon=null;
+function renderAtts(){
+  if(!amon)amon=today.slice(0,7);
+  $('alabel').textContent=new Date(amon+'-01T12:00:00').toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+  var L=$('attL');L.textContent='';
+  var list=entries.filter(function(e){return e.t==='spesa'&&e.att&&e.d.slice(0,7)===amon}).sort(function(a,b){return a.d.localeCompare(b.d)});
+  if(!list.length){var h=mk('div','hint','Nessun allegato in questo mese.');h.style.cssText='text-align:center;padding:24px 0';L.appendChild(h);return}
+  list.forEach(function(e){
+    var j=e.w?entries.filter(function(y){return y.id===e.w})[0]:null,c=j?cl(j.c):null;
+    var cd=mk('div','card');cd.style.cssText='display:flex;gap:12px;align-items:center';
+    var th=mk('div');th.style.cssText='width:64px;height:64px;flex:none;border-radius:10px;background:var(--bg);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--mut);overflow:hidden';th.textContent=e.att.t==='application/pdf'?'PDF':'\u2026';
+    var tx=mk('div');tx.style.cssText='flex:1;min-width:0';
+    var t1=mk('div','',fdm(e.d)+' \u00b7 '+(e.cat||'Spesa')+' \u00b7 '+eur.format(e.a));t1.style.fontWeight='600';
+    var t2=mk('div','hint',(c?c.name+(j.n?' \u00b7 '+j.n:''):'Spesa generale')+' \u00b7 '+e.att.n);t2.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    tx.appendChild(t1);tx.appendChild(t2);
+    var ob=mk('button','','Apri');ob.style.cssText='margin:0;width:auto;padding:10px 16px';
+    var cache=null;
+    function getB(){return cache?Promise.resolve(cache):ATT.get(e.id).then(function(r){cache=r;return r})}
+    ob.onclick=function(){getB().then(function(r){if(!r){status('Allegato non disponibile: verifica la connessione');return}window.open(URL.createObjectURL(r.blob),'_blank')})};
+    cd.appendChild(th);cd.appendChild(tx);cd.appendChild(ob);L.appendChild(cd);
+    if(e.att.t!=='application/pdf')getB().then(function(r){if(!r){th.textContent='n/d';return}var im=document.createElement('img');im.style.cssText='width:100%;height:100%;object-fit:cover';im.src=URL.createObjectURL(r.blob);th.textContent='';th.appendChild(im)}).catch(function(){th.textContent='n/d'})
+  })}
+$('aprev').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()-1);amon=d.toISOString().slice(0,7);renderAtts()};
+$('anext').onclick=function(){var d=new Date(amon+'-01T12:00:00');d.setMonth(d.getMonth()+1);amon=d.toISOString().slice(0,7);renderAtts()};
 function entryRow(x,showDate){
   var r=mk('div','it'),c=x.c?cl(x.c):null;
   var d=mk('span','d');
@@ -614,12 +643,12 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
-  [0,1,2,3,4,5,6,7,8,9,10,11,12].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
-  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
+  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12,13].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
   if($('pa').value==='')setAmt('pSel','pa');
   if(type==='lavoro'&&$('amt').value==='')setAmt('cSel','amt');
-  renderCal();renderClients();renderRecap();renderSpese();renderDash();renderUnpaid();renderTax();renderF24();renderImp();if(tab===9)renderBk();
+  renderCal();renderClients();renderRecap();renderSpese();renderDash();renderUnpaid();renderTax();renderF24();renderImp();if(tab===13)renderAtts();if(tab===9)renderBk();
 }
 function blockOf(x){
   var a=x.d,b=x.d;
@@ -1135,7 +1164,7 @@ function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rat
 function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';if(window.__kw1)window.__kw1.style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
-[1,2,3,4,5,6,7,8,9,10,11,12].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9,10,11,12,13].forEach(function(n){$('b'+n).onclick=function(){tab=n;if(n===13)amon=null;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
