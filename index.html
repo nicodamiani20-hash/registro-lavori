@@ -330,14 +330,13 @@ body:not(.v-pc) .brand h1{font-size:min(26px,4.6vw)!important}
 body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s both}
 @keyframes splApp{from{opacity:0;transform:scale(.965) translateY(10px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#splash,#splbox,#spltit{animation-duration:.01s;animation-delay:.4s}}
-#s0 #impcard{display:none!important}
 </style>
 </head>
 <body>
 <div id="splash" aria-hidden="true"><div id="splbox"><img id="splimg" alt="" width="132" height="132"><div id="spltit">REGISTRO LAVORI</div></div></div>
 <main>
 <div class="brand"><h1>Registro Lavori</h1><button id="mbtn" aria-label="Menu" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><button id="vbtn" aria-label="Vista" title="Vista: telefono o PC">▯</button><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button><div id="vmenu"></div></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b9">Backup</button><button id="b12">Importa Excel</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -358,7 +357,6 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s0" class="tsp">
   <div id="ovbar" style="display:none"><button id="ovclose">Chiudi</button></div>
-  <div class="card" id="impcard" style="display:none"></div>
   <div class="card">
     <div class="seg"><button id="tSpesa" class="on">Spesa</button><button id="tLavoro">Lavoro</button></div>
     <div id="swrap"><select id="cat"></select><select id="wSel"></select><label class="ck"><input type="checkbox" id="bill" checked>Addebita al cliente nel rendiconto (se associata a un lavoro)</label></div>
@@ -452,6 +450,10 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 
 <section id="s10" style="display:none">
   <div class="card"><div class="k" style="margin-bottom:8px">Elenco Costi</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
+</section>
+
+<section id="s12" style="display:none">
+  <div class="card" id="impcard"></div>
 </section>
 
 <section id="s9" style="display:none">
@@ -566,8 +568,8 @@ function render(){
   $('spct').textContent=pct(o,i);$('sw').textContent=dd.w;$('sh').textContent=dd.h;
   var tk=0,tkr=0;list.forEach(function(e){if(e.t==='lavoro'){tk+=e.k||0;tkr+=kmv(e)}});$('skm').textContent=(Math.round(tk*10)/10)+' km';$('skr').textContent=eur.format(tkr);
   $('pbar').style.width=(i>0?Math.min(100,o/i*100):(o>0?100:0))+'%';
-  [0,1,2,3,4,5,6,7,8,9,10,11].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
-  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
+  [0,1,2,3,4,5,6,7,8,9,10,11,12].forEach(function(n){$('s'+n).style.display=(n===tab||(n===0&&ov))?'':'none';if($('b'+n))$('b'+n).className=n===tab?'on':''});
+  document.body.classList.toggle('calv',tab===1);$('sumcard').style.display=[2,4,5,6,7,8,9,10,11,12].indexOf(tab)>=0?'none':'';$('s0').classList.toggle('ov',ov);$('ovbar').style.display=ov?'':'none';$('fab').style.display=(tab===1&&!ov)?'':'none';
   fillSel($('cSel'));fillSel($('pSel'));hint();fillCat();fillW(false);
   if($('pa').value==='')setAmt('pSel','pa');
   if(type==='lavoro'&&$('amt').value==='')setAmt('cSel','amt');
@@ -1086,7 +1088,7 @@ function setAmt(selId,amtId){var c=cl(+$(selId).value);if(c)$(amtId).value=c.rat
 function setType(t){type=t;$('pcard').style.display=t==='lavoro'?'':'none';$('s0').classList.toggle('tsp',t==='spesa');$('tSpesa').className=t==='spesa'?'on':'';$('tLavoro').className=t==='lavoro'?'on':'';$('swrap').style.display=t==='spesa'?'':'none';$('cwrap').style.display=t==='lavoro'?'':'none';$('sup').style.display=t==='lavoro'?'':'none';$('supn').style.display=t==='lavoro'?'':'none';$('km').style.display=t==='lavoro'?'':'none';if(window.__kw1)window.__kw1.style.display=t==='lavoro'?'':'none';$('desc').placeholder=t==='lavoro'?'Descrizione del lavoro (es. montaggio palco)':'Descrizione (facoltativa)';if(t==='lavoro')setAmt('cSel','amt');else $('amt').value=''}
 function shift(n){var p=month.split('-'),d=new Date(+p[0],+p[1]-1+n,1);month=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2);sel=null;render()}
 $('prev').onclick=function(){shift(-1)};$('next').onclick=function(){shift(1)};
-[1,2,3,4,5,6,7,8,9,10,11].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
+[1,2,3,4,5,6,7,8,9,10,11,12].forEach(function(n){$('b'+n).onclick=function(){tab=n;clearRange();month=today.slice(0,7);ysp=+today.slice(0,4);sel=null;render();if(n===8&&!mailLoaded)loadMail()}});
 $('tSpesa').onclick=function(){setType('spesa')};$('tLavoro').onclick=function(){setType('lavoro')};
 $('cSel').onchange=function(){setAmt('cSel','amt');hint()};
 $('pSel').onchange=function(){setAmt('pSel','pa')};
@@ -1749,14 +1751,15 @@ function renderUnpaid(){
 }
 function renderImp(){
   var c=$('impcard');
-  if(typeof IMP==='undefined'||imps.indexOf(IMP.id)>=0||impHide){c.style.display='none';return}
-  c.style.display='';c.textContent='';
+  c.textContent='';
+  if(typeof IMP==='undefined'){c.appendChild(mk('div','k','Importa da Excel'));c.appendChild(mk('div','hint','Nessun file Excel da importare.'));return}
+  if(imps.indexOf(IMP.id)>=0){c.appendChild(mk('div','k','Importa da Excel'));c.appendChild(mk('div','hint','Il file Excel (anno 2025) \u00e8 gi\u00e0 stato importato.'));return}
   var tot=IMP.days.reduce(function(a,x){return a+x.a+x.s},0),km=IMP.days.reduce(function(a,x){return a+(x.k||0)},0),rk=IMP.days.reduce(function(a,x){return a+(x.kmo||0)},0),sp=IMP.spese.reduce(function(a,x){return a+x.a},0);
   c.appendChild(mk('div','k','Dati trovati nel tuo file Excel (anno 2025)'));
   var g=mk('div','grid');stat(g,'Giornate',String(IMP.days.length));stat(g,'Clienti',String(IMP.clients.length));stat(g,'Compensi',eur.format(tot),'in');stat(g,'Spese ('+IMP.spese.length+')',eur.format(sp),'out');stat(g,'Km percorsi',km.toLocaleString('it-IT')+' km');stat(g,'Rimborso km',eur.format(rk),'in');c.appendChild(g);
   var t=mk('div','hint','Le giornate vengono importate come gi\u00e0 pagate. Quelle gi\u00e0 presenti ricevono solo i km. I dati che hai inserito tu non vengono toccati.');t.style.marginTop='10px';c.appendChild(t);
-  var row=mk('div','row'),b1=mk('button','pri','Importa'),b2=mk('button','','Non ora');b2.style.marginTop='10px';
-  b1.onclick=doImport;b2.onclick=function(){impHide=true;try{localStorage.setItem('imp_hide','1')}catch(e){}renderImp()};row.appendChild(b1);row.appendChild(b2);c.appendChild(row);
+  var row=mk('div','row'),b1=mk('button','pri','Importa');
+  b1.onclick=doImport;row.appendChild(b1);c.appendChild(row);
 }
 function doImport(){
   var map={},nc=0,nd=0,nu=0,ns=0,sk=0,rm=0,t=Date.now();
