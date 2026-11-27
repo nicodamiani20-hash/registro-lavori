@@ -633,8 +633,8 @@ function renderLuoghi(){
   lgMap(G)}
 async function lgMap(G){
   try{await window.__loadLeaflet()}catch(e){$('lgmap').textContent='Mappa non caricata: controlla la connessione';return}
-  if(!LG.map){LG.map=L.map('lgmap',{zoomControl:false,attributionControl:true}).setView([42.5,12.5],5);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abcd',attribution:'\u00a9 OpenStreetMap \u00a9 CARTO'}).addTo(LG.map);LG.layer=L.layerGroup().addTo(LG.map)}
-  setTimeout(function(){LG.map.invalidateSize()},150);
+  if(!LG.map&&!document.getElementById('lgmap')._leaflet_id){LG.map=L.map('lgmap',{zoomControl:false,attributionControl:true}).setView([42.5,12.5],5);L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',{maxZoom:19,subdomains:'abcd',attribution:'\u00a9 OpenStreetMap \u00a9 CARTO'}).addTo(LG.map);LG.layer=L.layerGroup().addTo(LG.map)}
+  if(!LG.map)return;setTimeout(function(){LG.map.invalidateSize()},150);
   function draw(fit){LG.layer.clearLayers();var pts=[];G.forEach(function(g){var v=LG.coords[g.key];if(!v)return;pts.push([v[1],v[0]]);var c=g.c?cl(g.c):null,col=c?c.color:'#3d8bff';
     var ic=L.divIcon({className:'',html:'<div class="lgb" style="background:linear-gradient(160deg,'+col+',#15161a)">'+g.days.length+'</div>',iconSize:[64,64],iconAnchor:[32,75]});
     L.marker([v[1],v[0]],{icon:ic,title:g.name}).on('click',function(){var el=document.getElementById('lg_'+g.key.replace(/[^a-z0-9]/g,''));if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('hl');setTimeout(function(){el.classList.remove('hl')},1800)}}).addTo(LG.layer)});
@@ -1273,7 +1273,12 @@ function setPaid(x,v,msg){
   window.__geo=geo;window.__loadLeaflet=function(){return loadLeaflet()};window.__geoGet=function(q){try{return (JSON.parse(ls(CK,'{}'))||{})[q.toLowerCase().replace(/\s+/g,' ').trim()]||null}catch(e){return null}};
   window.__geoPut=function(q,v){var cache={};try{cache=JSON.parse(ls(CK,'{}'))||{}}catch(e){}cache[q.toLowerCase().replace(/\s+/g,' ').trim()]=v;ss(CK,JSON.stringify(cache))};
   async function nsearch(q){var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&accept-language=it&countrycodes=it,ch,fr,at,si,de&q='+encodeURIComponent(q));return r.json()}
-  function loadLeaflet(){return new Promise(function(ok,ko){if(window.L)return ok();var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(l);var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';s.onload=ok;s.onerror=ko;document.head.appendChild(s)})}
+  function loadLeaflet(){if(window.__lfp)return window.__lfp;
+    window.__lfp=new Promise(function(ok,ko){if(window.L&&window.L.map)return ok();
+      var cs=['https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'],js=['https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js'];
+      var l=document.createElement('link');l.rel='stylesheet';l.href=cs[0];l.onerror=function(){var l2=document.createElement('link');l2.rel='stylesheet';l2.href=cs[1];document.head.appendChild(l2)};document.head.appendChild(l);
+      (function nx(i){if(i>=js.length){window.__lfp=null;return ko()}var s=document.createElement('script');s.src=js[i];s.onload=function(){window.L&&window.L.map?ok():nx(i+1)};s.onerror=function(){nx(i+1)};document.head.appendChild(s)})(0)});
+    return window.__lfp}
   function openMap(start,done){
     var o=mk('div');o.style.cssText='position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column';
     var top=mk('div');top.style.cssText='padding:calc(10px + env(safe-area-inset-top,0px)) 10px 8px;display:flex;gap:8px';
