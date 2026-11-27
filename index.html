@@ -360,7 +360,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
   <div id="ovbar" style="display:none"><button id="ovclose">Chiudi</button></div>
   <div class="card">
     <div class="seg"><button id="tSpesa" class="on">Spesa</button><button id="tLavoro">Lavoro</button></div>
-    <div id="swrap"><select id="cat"></select><select id="wSel"></select><label class="ck"><input type="checkbox" id="bill" checked>Addebita al cliente nel rendiconto (se associata a un lavoro)</label></div>
+    <div id="swrap"><select id="cat"></select><select id="wSel"></select><label class="ck"><input type="checkbox" id="bill" checked>Addebita al cliente nel rendiconto (se associata a un lavoro)</label><div class="k" style="margin-top:10px">Allegato (facoltativo, solo se collegata a un lavoro)</div><input type="file" id="attf" accept="image/*,application/pdf"></div>
     <div id="cwrap" style="display:none"><select id="cSel"></select><div class="hint" id="chint"></div><label class="ck"><input type="checkbox" id="paid">Giornata già pagata</label></div>
     <input type="date" id="date">
     <input type="text" id="desc" placeholder="Descrizione (facoltativa)" maxlength="120">
@@ -517,7 +517,7 @@ function days(m){
 function mk(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
 function delEntry(id){
   var x=entries.filter(function(y){return y.id===id})[0],g=x?jobOf(x):[];
-  function del(ids,m){entries=entries.filter(function(y){return ids.indexOf(y.id)<0});save();render();status(m)}
+  function del(ids,m){ids.forEach(function(i){ATT.del(i)});entries=entries.filter(function(y){return ids.indexOf(y.id)<0});save();render();status(m)}
   if(g.length<2){del([id],'Movimento eliminato');return}
   var f=function(d){return new Date(d+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})};
   askChoice('Eliminare quale parte?',[x.n.trim()+' \u00b7 '+g.length+' giorni ('+f(g[0].d)+'\u2013'+f(g[g.length-1].d)+')'],[
@@ -530,6 +530,39 @@ function fillSel(s){
   var nd={};entries.forEach(function(e){if(e.t==='lavoro')nd[e.c]=(nd[e.c]||0)+1});clients.slice().sort(function(a,b){return (nd[b.id]||0)-(nd[a.id]||0)||a.name.localeCompare(b.name)}).forEach(function(c){var o=mk('option','',c.name);o.value=c.id;s.appendChild(o)});
   if(v&&cl(+v))s.value=v;
 }
+/*ATT*/var ATT=(function(){var db=null;function open(){return new Promise(function(ok,ko){if(db)return ok(db);var q=indexedDB.open('rl_att',1);q.onupgradeneeded=function(){q.result.createObjectStore('f')};q.onsuccess=function(){db=q.result;ok(db)};q.onerror=function(){ko(q.error)}})}
+function tx(m,f){return open().then(function(d){return new Promise(function(ok,ko){var t=d.transaction('f',m),s=t.objectStore('f'),r=f(s);t.oncomplete=function(){ok(r&&r.result)};t.onerror=function(){ko(t.error)}})})}
+function prep(file){return new Promise(function(ok,ko){if(/^image\//.test(file.type)){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){var k=Math.min(1,1800/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?ok({blob:b,type:'image/jpeg',name:file.name||'foto.jpg'}):ko('img')},'image/jpeg',.82)};im.onerror=function(){ko('img')};im.src=u}else if(file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')){if(file.size>8e6)return ko('big');ok({blob:file,type:'application/pdf',name:file.name||'allegato.pdf'})}else ko('fmt')})}
+return {put:function(id,o){return tx('readwrite',function(s){return s.put(o,id)})},get:function(id){return tx('readonly',function(s){return s.get(id)})},del:function(id){return tx('readwrite',function(s){return s.delete(id)}).catch(function(){})},prep:prep}})();
+function attErr(e){status(e==='big'?'File troppo grande (max 8 MB)':e==='fmt'?'Formato non supportato: usa foto o PDF':'Impossibile leggere il file')}
+function attSet(x,file){return ATT.prep(file).then(function(p){return ATT.put(x.id,p).then(function(){x.att={n:p.name,t:p.type};save();render();status('Allegato salvato')})}).catch(attErr)}
+function attBox(x){
+  var w=mk('div');w.style.cssText='flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--mut)';
+  var f=document.createElement('input');f.type='file';f.accept='image/*,application/pdf';f.style.display='none';f.onchange=function(){if(f.files[0])attSet(x,f.files[0])};
+  if(x.att){w.appendChild(mk('span','','Allegato: '+x.att.n));
+    var o=mk('button','','Apri');o.style.cssText='margin:0;padding:6px 12px;width:auto';o.onclick=function(){ATT.get(x.id).then(function(r){if(!r){status('Allegato non presente su questo dispositivo');return}window.open(URL.createObjectURL(r.blob),'_blank')})};
+    var d=mk('button','','Rimuovi');d.style.cssText='margin:0;padding:6px 12px;width:auto';d.onclick=function(){ATT.del(x.id);delete x.att;save();render();status('Allegato rimosso')};w.appendChild(o);w.appendChild(d)}
+  else{var a=mk('button','','Allega documento');a.style.cssText='margin:0;padding:6px 12px;width:auto';a.onclick=function(){f.click()};w.appendChild(a)}
+  w.appendChild(f);return w}
+async function addAtt(doc,ex,deco){
+  var L=ex.filter(function(e){return e.att});if(!L.length)return;
+  for(var i=0;i<L.length;i++){var e=L[i],rec=null;try{rec=await ATT.get(e.id)}catch(_){}if(!rec)continue;
+    var pg=[];
+    try{
+      if(rec.type==='application/pdf'){
+        if(!window.pdfjsLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+        pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        var pd=await pdfjsLib.getDocument({data:await rec.blob.arrayBuffer()}).promise;
+        for(var n=1;n<=Math.min(pd.numPages,6);n++){var p=await pd.getPage(n),vp=p.getViewport({scale:1.6}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await p.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;pg.push({u:cv.toDataURL('image/jpeg',.8),w:cv.width,h:cv.height});cv.width=cv.height=0}
+      }else{
+        var u=await new Promise(function(ok,ko){var fr=new FileReader;fr.onload=function(){ok(fr.result)};fr.onerror=ko;fr.readAsDataURL(rec.blob)});
+        var sz=await new Promise(function(ok,ko){var im=new Image;im.onload=function(){ok({w:im.width,h:im.height})};im.onerror=ko;im.src=u});
+        pg.push({u:u,w:sz.w,h:sz.h})}
+    }catch(_){continue}
+    pg.forEach(function(im,k){
+      doc.addPage();deco();doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Allegato: '+e.label+' – '+new Date(e.d+'T12:00:00').toLocaleDateString('it-IT')+(pg.length>1?' (pag. '+(k+1)+'/'+pg.length+')':''),15,48);doc.setTextColor(0);
+      var bw=180,bh=210,sc=Math.min(bw/im.w,bh/im.h),w=im.w*sc,h=im.h*sc;doc.addImage(im.u,'JPEG',15+(bw-w)/2,54,w,h,undefined,'FAST')})}
+}
 function entryRow(x,showDate){
   var r=mk('div','it'),c=x.c?cl(x.c):null;
   var d=mk('span','d');
@@ -540,6 +573,7 @@ function entryRow(x,showDate){
   r.appendChild(d);r.appendChild(a);
   if(x.t==='lavoro'){var pk=mk('input');pk.type='checkbox';pk.checked=!!x.p;pk.setAttribute('aria-label','Pagata');pk.onchange=function(){setPaid(x,pk.checked)};var lb=mk('label','ck');lb.style.cssText='margin:0;font-size:12px;white-space:nowrap';lb.appendChild(pk);lb.appendChild(document.createTextNode('Pagata'));r.appendChild(lb)}
   r.appendChild(b);
+  if(x.t==='spesa'&&x.w){r.style.flexWrap='wrap';r.appendChild(attBox(x))}
   if(showDate&&x.t==='lavoro'){var w=mk('div'),sr=mk('div','row'),si=mk('input');si.type='number';si.step='0.01';si.min='0';si.placeholder='Supplemento €';si.value=x.s||'';var ki=mk('input');ki.type='number';ki.step='0.1';ki.min='0';ki.placeholder='Km percorsi';ki.value=x.k||'';var sd=mk('input');sd.type='text';sd.maxLength=80;sd.placeholder='Descrizione supplemento';sd.value=x.sn||'';var nd=mk('input');nd.type='text';nd.maxLength=120;nd.placeholder='Descrizione del lavoro';nd.value=x.n||'';var sb=null;var sv=function(){x.n=nd.value.trim();x.s=Math.round((parseFloat(si.value)||0)*100)/100;x.sn=sd.value.trim();var nk=parseFloat(ki.value)||0;if(nk!==(x.k||0))delete x.kmo;x.k=nk;delete x.kr;save();status('Salvato'+(x.k>0&&!(cl(x.c)||{}).kmr?'. Attenzione: il cliente non ha un rimborso €/km, impostalo in Clienti':''))};si.onchange=sd.onchange=ki.onchange=nd.onchange=sv;sr.appendChild(si);w.appendChild(r);
     var cl0=mk('div','k','Compenso base della giornata (\u20ac)'),ai=mk('input');ai.type='number';ai.step='0.01';ai.min='0';ai.value=x.a;ai.setAttribute('inputmode','decimal');ai.style.cssText='font-size:18px;padding:14px;margin-bottom:10px';
     ai.onchange=function(){var v=Math.round(parseFloat(ai.value)*100)/100;if(!(v>=0)){ai.value=x.a;status('Importo non valido');return}
@@ -719,7 +753,7 @@ function rrows(){var c=cl(+$('rSel').value);if(!c)return {c:null,rows:[],ex:[]};
   var rows=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id&&rin(e.d)}).sort(function(a,b){return a.d.localeCompare(b.d)});
   if(RG){var all=entries.filter(function(e){return e.t==='lavoro'&&e.c===c.id&&RG.ids.indexOf(e.id)>=0}).sort(function(a,b){return a.d.localeCompare(b.d)});
     if(RG.c===c.id&&RG.key===rgk()&&all.length===RG.ids.length)rows=all;else RG=null}
-  var ex=entries.filter(function(e){if(e.t!=='spesa'||!e.bill||!e.w)return false;var j=entries.filter(function(y){return y.id===e.w})[0];return j&&j.c===c.id&&(RG?RG.ids.indexOf(j.id)>=0:rin(j.d))}).sort(function(a,b){return a.d.localeCompare(b.d)}).map(function(e){return {d:e.d,a:e.a,w:e.w,label:(e.cat||'Spesa')+(e.n?' - '+e.n:'')}});
+  var ex=entries.filter(function(e){if(e.t!=='spesa'||!e.bill||!e.w)return false;var j=entries.filter(function(y){return y.id===e.w})[0];return j&&j.c===c.id&&(RG?RG.ids.indexOf(j.id)>=0:rin(j.d))}).sort(function(a,b){return a.d.localeCompare(b.d)}).map(function(e){return {id:e.id,att:e.att,d:e.d,a:e.a,w:e.w,label:(e.cat||'Spesa')+(e.n?' - '+e.n:'')}});
   return {c:c,rows:rows,ex:ex}}
 function rdesc(x){var p=[];if(x.n)p.push(x.n);if(x.s)p.push('Suppl.'+(x.sn?' ('+x.sn+')':''));return p.join(' - ')||'-'}
 function xv(r,j){return r.ex.filter(function(e){return e.w===j.id}).reduce(function(a,e){return a+e.a},0)}
@@ -834,6 +868,7 @@ $('rpdf').onclick=async function(){
   if(r.ex.length){y+=12;if(y>254){np()}doc.setFont('helvetica','bold');doc.text('Spese extra',15,y);y+=6;doc.setFont('helvetica','normal');
     r.ex.forEach(function(x){var ln=doc.splitTextToSize(x.label,110),h=ln.length*5;if(y+h>266){np()}doc.text(new Date(x.d+'T12:00:00').toLocaleDateString('it-IT'),15,y);doc.text(ln,38,y);doc.text(num(x.a),195,y,{align:'right'});y+=h+1})}
   y+=8;if(y>262){np()}doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(61,139,255);var tn=num(b+s+k+xt);doc.text(tn,195,y,{align:'right'});doc.text('Totale',195-doc.getTextWidth(tn)-4,y,{align:'right'});y+=6;doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(110);doc.text(FORF,195,y,{align:'right'});
+  await addAtt(doc,r.ex,deco);
   var fn='Rendiconto-'+r.c.name.replace(/[^A-Za-z0-9]+/g,'-')+'-'+rtag()+'.pdf';
   try{var dl=await claude.use('downloads');if(dl)await dl.save({filename:fn,data:doc.output('arraybuffer')});else doc.save(fn);status('PDF pronto')}catch(e){status('Download non riuscito: '+((e&&e.message)||e))}
 };
@@ -1097,8 +1132,8 @@ $('add').onclick=function(){
   var a=parseFloat($('amt').value),d=$('date').value,c=+$('cSel').value;
   if(!(a>=0)||$('amt').value===''||!d){status('Inserisci data e importo valido');return}
   if(type==='lavoro'&&!cl(c)){status('Scegli un cliente (aggiungilo in "Clienti")');return}
-  var x={id:Date.now(),t:type,d:d,n:$('desc').value.trim(),a:Math.round(a*100)/100};if(type==='spesa'){x.cat=$('cat').value;var wv=+$('wSel').value;if(wv){x.w=wv;x.bill=$('bill').checked}}if(type==='lavoro'){x.c=c;x.s=Math.round((parseFloat($('sup').value)||0)*100)/100;x.sn=$('supn').value.trim();var k=parseFloat($('km').value)||0;if(k>0)x.k=k;var lc=$('loc').value.trim();if(lc)x.loc=lc;x.p=$('paid').checked}
-  entries.push(x);$('paid').checked=false;$('sup').value='';$('supn').value='';$('km').value='';$('loc').value='';$('desc').value='';if(type==='lavoro')setAmt('cSel','amt');else $('amt').value='';
+  var x={id:Date.now(),t:type,d:d,n:$('desc').value.trim(),a:Math.round(a*100)/100};if(type==='spesa'){x.cat=$('cat').value;var wv=+$('wSel').value;if(wv){x.w=wv;x.bill=$('bill').checked;var af=$('attf').files[0];if(af){window.__af=af}}$('attf').value=''}if(type==='lavoro'){x.c=c;x.s=Math.round((parseFloat($('sup').value)||0)*100)/100;x.sn=$('supn').value.trim();var k=parseFloat($('km').value)||0;if(k>0)x.k=k;var lc=$('loc').value.trim();if(lc)x.loc=lc;x.p=$('paid').checked}
+  entries.push(x);if(window.__af&&x.w){var af0=window.__af;setTimeout(function(){attSet(x,af0)},0)}window.__af=null;$('paid').checked=false;$('sup').value='';$('supn').value='';$('km').value='';$('loc').value='';$('desc').value='';if(type==='lavoro')setAmt('cSel','amt');else $('amt').value='';
   ov=false;month=d.slice(0,7);save();render();if(type==='lavoro'&&k>0&&!(cl(c)||{}).kmr)status('Questo cliente non ha un rimborso €/km: impostalo in Clienti');
 };
 $('padd').onclick=function(){
