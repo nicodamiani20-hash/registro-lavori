@@ -539,6 +539,7 @@ function coLock(){CO.un=false;if(tab===15)renderCo()}
 document.addEventListener('visibilitychange',function(){if(document.hidden){CO.t=Date.now()}else if(CO.un&&Date.now()-CO.t>60000)coLock()});
 var COF=[['n','Nome azienda','text'],['t','Titolare','text'],['d','Descrizione attività','text'],['a','Indirizzo (via e numero)','text'],['cap','CAP','text'],['c','Città','text'],['p','Provincia','text'],['iva','Partita IVA','text'],['cf','Codice fiscale','text'],['rea','REA / Albo imprese artigiane','text'],['tel','Telefono','tel'],['em','Email','email'],['pec','PEC','email'],['sdi','Codice destinatario SDI','text'],['iban','IBAN','text'],['web','Sito web','text']];
 function coLogoPrep(file){return new Promise(function(ok,ko){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){var k=Math.min(1,480/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL(/png|svg|webp/.test(file.type)?'image/png':'image/jpeg',.88))};im.onerror=function(){URL.revokeObjectURL(u);ko()};im.src=u})}
+var CO_DEF={n:'Damiani Nicol\u00f2',t:'Nicol\u00f2 Damiani',d:'Lighting setup, programming & networking for events',a:'Cascina Recolo, 6',cap:'25023',c:'Gottolengo',p:'BS',iva:'04198740989',cf:'DMNNCL99S20E884X',rea:'BS - 596149',tel:'+39 334 125 6779',em:'nicodamiani20@gmail.com',pec:'pecdamiani@legalmail.it'};
 function renderCo(){
   var R=$('coR');R.textContent='';var cd=mk('div','card');R.appendChild(cd);
   function inp(type,ph){var i=document.createElement('input');i.type=type;i.placeholder=ph;i.style.cssText='display:block;width:100%;box-sizing:border-box;margin:0 0 10px;font-size:17px;padding:14px;border-radius:12px';return i}
@@ -557,6 +558,7 @@ function renderCo(){
       if(await coCheck(pw.value)){CO.un=true;CO.tries=0;renderCo()}else{CO.tries++;pw.value='';if(CO.tries>=5){CO.until=Date.now()+30000;CO.tries=0}status('Password errata')}};
     eb.onclick=go;pw.onkeydown=function(e){if(e.key==='Enter')go()};cd.appendChild(pw);cd.appendChild(eb);
     if(hasFace)setTimeout(function(){if(!CO.un&&tab===15&&!document.hidden)fb.click()},300);return}
+  if(!Object.keys(company).length){company=Object.assign({},CO_DEF);save()}
   cd.appendChild(mk('div','k','Dati dell’azienda'));
   var lg=mk('div');lg.style.cssText='display:flex;align-items:center;gap:14px;margin:10px 0 14px';
   var pv=mk('div');pv.style.cssText='width:88px;height:88px;border-radius:16px;background:var(--bg);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:12px;color:var(--mut);text-align:center';
