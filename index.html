@@ -1592,7 +1592,7 @@ function renderTax(){
 }
 $('tSel').onchange=function(){tcfg.y=this.value;tsave();renderTax()};
 
-$('fab').onclick=function(){ov=true;$('date').value=sel||today;$('ps').value=sel||today;$('pe').value=sel||today;render();var o=$('s0');o.scrollTop=0};
+$('fab').onclick=function(){ov=true;$('date').value=sel||today;$('ps').value=sel||today;$('pe').value=sel||today;render();fillW(true);var o=$('s0');o.scrollTop=0};
 $('ovclose').onclick=function(){ov=false;render()};
 document.body.classList.add('pal');
 var mailLoaded=false,mailBusy=false,muted=[];
