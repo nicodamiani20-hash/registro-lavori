@@ -348,7 +348,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 <div id="splash" aria-hidden="true"><div id="splbox"><img id="splimg" alt="" width="132" height="132"><div id="spltit">REGISTRO LAVORI</div></div></div>
 <main>
 <div class="brand"><h1>Registro Lavori</h1><button id="mbtn" aria-label="Menu" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button><button id="vbtn" aria-label="Vista" title="Vista: telefono o PC">▯</button><button id="refbtn" aria-label="Aggiorna la pagina" title="Aggiorna">⟳</button><div id="vmenu"></div></div>
-<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto Mensile</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b8">Email</button><button id="b2">Clienti</button><button id="b10">Elenco Costi</button><button id="b14">Luoghi</button><button id="b13">Allegati</button><button id="b12">Importa Excel</button><button id="b16">Documenti aziendali</button><button id="b9">Backup</button><button id="b15">Azienda</button></div>
+<div class="tabs"><button id="b1" class="on">Calendario</button><button id="b3">Rendiconto</button><button id="b4">Spese</button><button id="b5">Fatturato</button><button id="b6">Insoluti</button><button id="b7">Tasse</button><button id="b11">F24</button><button id="b2">Clienti</button><button id="b10">Categorie spese</button><button id="b8">Email</button><button id="b13">Allegati</button><button id="b14">Luoghi</button><button id="b16">Documenti</button><button id="b12">Importa Excel</button><button id="b9">Backup</button><button id="b15">Anagrafica</button></div>
 
 <div class="card" id="sumcard">
   <div class="nav"><button id="prev" aria-label="Mese precedente">‹</button><b id="mlabel"></b><button id="next" aria-label="Mese successivo">›</button></div>
@@ -461,7 +461,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 </section>
 
 <section id="s10" style="display:none">
-  <div class="card"><div class="k" style="margin-bottom:8px">Elenco Costi</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
+  <div class="card"><div class="k" style="margin-bottom:8px">Categorie spese</div><div class="row"><input type="text" id="catn" placeholder="Nuova voce (es. Pedaggi)" maxlength="40"><button id="catadd">Aggiungi</button></div><div id="catl"></div></div>
 </section>
 
 <section id="s16" style="display:none">
@@ -742,7 +742,7 @@ function docMeta(){if(!company.docs)company.docs={};return company.docs}
 function renderDocs(){
   var R=$('docR');if(!R)return;R.textContent='';var cd=mk('div','card');R.appendChild(cd);
   if(!coGate(R,cd,16,renderDocs))return;
-  cd.appendChild(mk('div','k','Documenti aziendali'));
+  cd.appendChild(mk('div','k','Documenti'));
   var h=mk('div','hint','Carica una foto o un PDF (max 4 MB). Sono visibili solo dopo la password o Face ID e si sincronizzano con gli altri dispositivi.');h.style.margin='6px 0 4px';cd.appendChild(h);
   if(Object.keys(docMeta()).length){var ac=mk('div','card');ac.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(ac);ac.appendChild(mk('b','','Tutti i documenti'));
     var ah=mk('div','hint','Cartella ZIP con i file numerati e un elenco con descrizione e scadenze, oppure invio diretto per email (con l\u2019intestazione della ditta) o su WhatsApp.');ah.style.margin='6px 0 10px';ac.appendChild(ah);
