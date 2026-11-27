@@ -652,6 +652,67 @@ function openBlob(r){
   if(isPdf){var fr=document.createElement('iframe');fr.src=u;fr.style.cssText='width:100%;height:100%;border:0;background:#fff';bd.appendChild(fr)}
   else{var im=document.createElement('img');im.src=u;im.style.cssText='max-width:100%;height:auto;display:block';bd.appendChild(im)}
   o.appendChild(bd);o.style.display='flex'}
+/*DOCZIP*/function crc32(u){var t=crc32.t;if(!t){t=crc32.t=new Uint32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}var r=0xFFFFFFFF;for(var i=0;i<u.length;i++)r=t[(r^u[i])&255]^(r>>>8);return (r^0xFFFFFFFF)>>>0}
+function zipMake(files){var enc=new TextEncoder(),parts=[],cen=[],off=0,d=new Date(),dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+  files.forEach(function(f){var nm=enc.encode(f.name),c=crc32(f.data),sz=f.data.length,h=new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,dt,true);h.setUint16(12,dd,true);h.setUint32(14,c,true);h.setUint32(18,sz,true);h.setUint32(22,sz,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+    parts.push(h.buffer,nm,f.data);
+    var g=new DataView(new ArrayBuffer(46));g.setUint32(0,0x02014b50,true);g.setUint16(4,20,true);g.setUint16(6,20,true);g.setUint16(8,0x0800,true);g.setUint16(10,0,true);g.setUint16(12,dt,true);g.setUint16(14,dd,true);g.setUint32(16,c,true);g.setUint32(20,sz,true);g.setUint32(24,sz,true);g.setUint16(28,nm.length,true);g.setUint32(42,off,true);
+    cen.push(g.buffer,nm);off+=30+nm.length+sz});
+  var cs=0;cen.forEach(function(x){cs+=x.byteLength!==undefined?x.byteLength:x.length});
+  var e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+  return new Blob(parts.concat(cen,[e.buffer]),{type:'application/zip'})}
+function docSafe(t){return String(t).replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()}
+function docExt(r){var t=r.type||(r.blob&&r.blob.type)||'',m=/\.([a-z0-9]{2,4})$/i.exec(r.name||'');return t==='application/pdf'?'pdf':t==='image/jpeg'?'jpg':t==='image/png'?'png':m?m[1].toLowerCase():'bin'}
+async function docCollect(){var out=[],miss=0,n=0;
+  for(var i=0;i<DOCS.length;i++){var D=DOCS[i],m=docMeta()[D[0]];if(!m)continue;var r=await ATT.get('doc_'+D[0]);if(!r){miss++;continue}n++;
+    var num=('0'+n).slice(-2);out.push({num:num,key:D[0],label:D[1],file:num+' - '+docSafe(D[1])+'.'+docExt(r),blob:r.blob,type:r.type||r.blob.type,exp:m.exp||''})}
+  return {items:out,miss:miss}}
+function docIndex(items){var c=company||{},L=['DOCUMENTI AZIENDALI','',(c.n||'')+(c.iva?' - P. IVA '+c.iva:''),'Generato il '+new Date().toLocaleDateString('it-IT'),'','ELENCO DOCUMENTI',''];
+  items.forEach(function(x){L.push(x.num+'. '+x.label);L.push('    File: '+x.file);if(x.exp)L.push('    Scadenza: '+new Date(x.exp+'T12:00:00').toLocaleDateString('it-IT'));L.push('')});
+  var mt=c.mat||{};if(mt.inps||mt.inail){L.push('MATRICOLE');if(mt.inps)L.push('    INPS: '+mt.inps);if(mt.inail)L.push('    INAIL: '+mt.inail)}
+  return L.join('\r\n')}
+async function docZip(items){var files=[],enc=new TextEncoder();
+  for(var i=0;i<items.length;i++)files.push({name:items[i].file,data:new Uint8Array(await items[i].blob.arrayBuffer())});
+  files.unshift({name:'00 - Elenco documenti.txt',data:enc.encode(docIndex(items))});
+  return zipMake(files)}
+async function docDownload(){status('Preparo la cartella ZIP…');
+  try{var g=await docCollect();if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
+    var z=await docZip(g.items);var zn='Documenti aziendali - '+docSafe((company&&company.n)||'ditta')+'.zip';if(window.__capture){var cf=window.__capture;window.__capture=null;await cf({filename:zn,data:z})}else{var shared=false;try{var zf=new File([z],zn,{type:'application/zip'});if(navigator.canShare&&navigator.canShare({files:[zf]})){await navigator.share({files:[zf],title:zn});shared=true}}catch(e){if(e&&e.name==='AbortError')return}
+      if(!shared){var an=document.createElement('a');an.href=URL.createObjectURL(z);an.download=zn;document.body.appendChild(an);an.click();an.remove()}}status('ZIP pronto ('+g.items.length+' documenti)'+(g.miss?', '+g.miss+' non disponibili':''))}
+  catch(e){status('ZIP non creato: '+((e&&e.message)||e))}}
+async function docMailOpen(){status('Preparo i documenti…');var g;try{g=await docCollect()}catch(e){status('Documenti non leggibili');return}
+  if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
+  var o=$('dcp');if(!o){o=mk('div');o.id='dcp';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:14px';document.body.appendChild(o)}
+  o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Annulla'),pv=mk('button','pri','Anteprima');bar.appendChild(can);bar.appendChild(pv);o.appendChild(bar);
+  var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';cd.appendChild(mk('div','k','Invia documenti aziendali'));
+  var to=document.createElement('input');to.type='email';to.placeholder='email@destinatario.it';to.setAttribute('autocapitalize','off');to.value=coGet('doc_to','');cd.appendChild(mk('div','k','Destinatario'));cd.appendChild(to);
+  var l2=mk('div','k','Oggetto');l2.style.marginTop='10px';var sj=document.createElement('input');sj.value='Documenti aziendali - '+((company&&company.n)||'');cd.appendChild(l2);cd.appendChild(sj);
+  var l4=mk('div','k','Documenti da allegare');l4.style.marginTop='10px';cd.appendChild(l4);var ck={};
+  g.items.forEach(function(x){var lb=document.createElement('label');lb.style.cssText='display:flex;gap:8px;align-items:center;margin:6px 0;font-size:15px';var c=document.createElement('input');c.type='checkbox';c.checked=true;c.style.cssText='width:auto;margin:0';ck[x.key]=c;lb.appendChild(c);lb.appendChild(document.createTextNode(x.num+'. '+x.label+' ('+Math.round(x.blob.size/1024)+' KB)'));cd.appendChild(lb)});
+  var zl=document.createElement('label');zl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var zc=document.createElement('input');zc.type='checkbox';zc.style.cssText='width:auto;margin:0';zl.appendChild(zc);zl.appendChild(document.createTextNode('Allega tutto in un unico file ZIP'));cd.appendChild(zl);
+  var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=6;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');
+  var mk2=function(){var sel=g.items.filter(function(x){return ck[x.key].checked});ta.value='Trasmetto in allegato la seguente documentazione aziendale:\n'+sel.map(function(x){return x.num+'. '+x.label}).join('\n')};mk2();
+  g.items.forEach(function(x){ck[x.key].onchange=mk2});cd.appendChild(l3);cd.appendChild(ta);
+  var hl=document.createElement('label');hl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var hc=document.createElement('input');hc.type='checkbox';hc.checked=true;hc.style.cssText='width:auto;margin:0';hl.appendChild(hc);hl.appendChild(document.createTextNode('Includi saluto, saluti finali e intestazione'));cd.appendChild(hl);
+  o.appendChild(cd);o.style.display='block';can.onclick=function(){o.style.display='none'};
+  pv.onclick=async function(){
+    var a=to.value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a)){status('Inserisci un indirizzo email valido');return}
+    var sel=g.items.filter(function(x){return ck[x.key].checked});if(!sel.length){status('Seleziona almeno un documento');return}
+    var tx=ta.value.trim();if(!tx){status('Scrivi un messaggio');return}
+    var tot=sel.reduce(function(t,x){return t+x.blob.size},0);if(tot*1.37>24e6){status('Allegati troppo grandi per una email (max circa 17 MB): togline qualcuno');return}
+    var sb=sj.value.trim()||'Documenti aziendali',pk=mailPack(tx,hc.checked),pf=[],fl=[];
+    try{if(zc.checked){var z=await docZip(sel),zn='Documenti aziendali.zip';pf=[{name:zn,type:'application/zip',b64:ab64(await z.arrayBuffer())}];fl=[{name:zn,size:z.size}]}
+      else{for(var i=0;i<sel.length;i++){var x=sel[i];pf.push({name:x.file,type:x.type,b64:ab64(await x.blob.arrayBuffer())});fl.push({name:x.file,size:x.blob.size})}}}
+    catch(e){status('Allegati non preparati');return}
+    mailPreview(a,sb,pk.html,async function(ok,bt){
+      bt.disabled=true;bt.textContent='Invio…';
+      try{await window.__gconnect();var mc=await claude.use('mcp');
+        await mc.callTool('Gmail','send_reply',{to:a,subject:sb,body:pk.plain,html:pk.html,files:pf});
+        try{localStorage.setItem('doc_to',a)}catch(e){}
+        ok();o.style.display='none';status('Email inviata a '+a)}
+      catch(e){var cc=e&&e.code;status(cc==='needs_reauth'?'Serve il permesso di inviare: collega Gmail dalla scheda Email':'Email non inviata ('+(cc||'errore')+')')}
+      bt.disabled=false;bt.textContent='Invia'},fl)}}
 var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0],['fgen','Formazione generale lavoratori',1],['fspec','Formazione specifica rischio basso',1],['med','Certificato medico',1]];
 function docMeta(){if(!company.docs)company.docs={};return company.docs}
 function renderDocs(){
@@ -680,6 +741,11 @@ function renderDocs(){
       B('Rimuovi',function(){askConfirm('Rimuovere \u201c'+D[1]+'\u201d?',[m.name||''],function(){ATT.del('doc_'+k);delete docMeta()[k];save();renderDocs();status('Documento rimosso')})})}
     if(D[2]&&m){var ex=mk('div');ex.style.cssText='margin-top:10px;display:flex;align-items:center;gap:8px';ex.appendChild(mk('span','hint','Scadenza'));var di=document.createElement('input');di.type='date';di.value=m.exp||'';di.style.cssText='flex:1;min-width:0;box-sizing:border-box;font-size:16px;padding:10px;border-radius:10px';di.onchange=function(){if(di.value)m.exp=di.value;else delete m.exp;save();renderDocs()};ex.appendChild(di);c.appendChild(ex)}
   });
+  if(Object.keys(docMeta()).length){var ac=mk('div','card');ac.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(ac);ac.appendChild(mk('b','','Tutti i documenti'));
+    var ah=mk('div','hint','Cartella ZIP con i file numerati e un elenco con descrizione e scadenze, oppure invio diretto per email con l\u2019intestazione della ditta.');ah.style.margin='6px 0 10px';ac.appendChild(ah);
+    var ar=mk('div');ar.style.cssText='display:flex;gap:8px;flex-wrap:wrap';ac.appendChild(ar);
+    var bz=mk('button','pri','Scarica ZIP');bz.style.cssText='margin:0;width:auto';bz.onclick=docDownload;ar.appendChild(bz);
+    if(window.__gconnect){var be=mk('button','','Invia per email');be.style.cssText='margin:0;width:auto';be.onclick=docMailOpen;ar.appendChild(be)}}
   inpf.onchange=async function(){var f=inpf.files&&inpf.files[0],k=window.__docK;if(!f||!k)return;status('Caricamento documento\u2026');
     try{var o=await ATT.prep(f);await ATT.put('doc_'+k,o);var m=docMeta();m[k]=Object.assign({},m[k]&&m[k].exp?{exp:m[k].exp}:{},{name:o.name,type:o.type,at:Date.now()});save();renderDocs();
       status('Documento caricato');ATT.up('doc_'+k,o).then(function(ok){if(ok===false)status('Salvato solo su questo dispositivo')}).catch(function(){status('Sincronizzazione non riuscita: il documento resta su questo dispositivo')})}
