@@ -1571,9 +1571,15 @@ function setPaid(x,v,msg){
     var f=null;
     if(W.step===0){
       if(!clients.length)Z.appendChild(mk('div','hint','Non hai ancora clienti: aggiungine uno nella scheda Clienti.'));
-      byDays().forEach(function(c){
-        var b=mk('button','wbtn'+(W.c===c.id?' on':''));var d=mk('i','dot');d.style.background=c.color;b.appendChild(d);b.appendChild(document.createTextNode(' '+c.name+' · '+eur.format(c.rate)+'/giorno'));
-        b.onclick=function(){if(W.c!==c.id){W.c=c.id;W.a=c.rate}nxt();draw()};Z.appendChild(b)})
+      if(clients.length){
+        var sl=document.createElement('select');sl.className='wsel';sl.style.cssText='width:100%;font-size:17px;padding:14px;border-radius:12px';
+        var o0=mk('option','','Scegli la ditta…');o0.value='';sl.appendChild(o0);
+        byDays().forEach(function(c){var o=mk('option','',c.name+' · '+eur.format(c.rate)+'/giorno');o.value=c.id;sl.appendChild(o)});
+        sl.value=W.c||'';
+        sl.onchange=function(){var c=cl(+sl.value);if(!c)return;if(W.c!==c.id){W.c=c.id;W.a=c.rate}nxt();draw()};
+        Z.appendChild(sl);
+        if(W.c){var nx=mk('div','wnav');var nb0=mk('button','pri','Avanti');nb0.onclick=function(){nxt();draw()};nx.appendChild(nb0);Z.appendChild(nx)}
+      }
     }else if(W.step===1){
       var sg=mk('div','seg'),b1=mk('button',W.multi?'':'on','Un giorno'),b2=mk('button',W.multi?'on':'','Più giorni');sg.style.marginBottom='12px';
       b1.onclick=function(){W.multi=false;draw()};b2.onclick=function(){W.multi=true;if(W.e<W.s)W.e=W.s;draw()};sg.appendChild(b1);sg.appendChild(b2);Z.appendChild(sg);
