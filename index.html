@@ -515,11 +515,12 @@ function fillSel(s){
   clients.forEach(function(c){var o=mk('option','',c.name);o.value=c.id;s.appendChild(o)});
   if(v&&cl(+v))s.value=v;
 }
+function catIcon(n){n=(n||'').toLowerCase();var M=[[/carbur|benzin|diesel|gasol|rifornim|\bgpl\b/,'\u26fd'],[/pedagg|autostrad|telepass/,'\ud83d\udee3\ufe0f'],[/vitto|cibo|pranzo|cena|ristor|colazion|bar\b/,'\ud83c\udf7d\ufe0f'],[/allogg|hotel|albergo|b&b|pernott/,'\ud83d\udecf\ufe0f'],[/material|cavi|cavo|ricambi|consumab/,'\ud83e\uddf0'],[/attrezz|strument|noleggio|luci|\bfari\b/,'\ud83d\udd27'],[/tass|f24|inps|iva|imposte|contribut/,'\ud83c\udfdb\ufe0f'],[/treno|biglietto|volo|aere|trasport|taxi|parchegg/,'\ud83d\ude86'],[/telefon|internet|abbonam/,'\ud83d\udcf1'],[/assicur/,'\ud83d\udee1\ufe0f'],[/commercial|consulen|contabil/,'\ud83d\udcc4']];for(var i=0;i<M.length;i++)if(M[i][0].test(n))return M[i][1];return '\ud83d\udecd\ufe0f'}
 function entryRow(x,showDate){
   var r=mk('div','it'),c=x.c?cl(x.c):null;
   var d=mk('span','d');
   if(x.t==='lavoro'){var dot=mk('i','dot');dot.style.background=c?c.color:'#888';d.appendChild(dot);d.appendChild(document.createTextNode((c?c.name:'Lavoro')+(x.n?' · '+x.n:'')+(x.s?' · suppl. '+eur.format(x.s)+(x.sn?' ('+x.sn+')':''):'')+(x.k?' · '+x.k+' km'+(kmv(x)?' '+eur.format(kmv(x)):''):'')))}
-  else{var wj=x.w?entries.filter(function(y){return y.id===x.w})[0]:null,wc=wj?cl(wj.c):null;d.textContent='Spesa · '+(x.cat?x.cat+(x.n?' · '+x.n:''):(x.n||'—'))+(x.bill&&wc?' · addebitata a '+wc.name:'')}
+  else{var wj=x.w?entries.filter(function(y){return y.id===x.w})[0]:null,wc=wj?cl(wj.c):null;d.textContent=catIcon(x.cat)+' Spesa · '+(x.cat?x.cat+(x.n?' · '+x.n:''):(x.n||'—'))+(x.bill&&wc?' · addebitata a '+wc.name:'')}
   var a=mk('b',x.t==='lavoro'?'in':'out',(x.t==='lavoro'?'+':'−')+eur.format(x.a+(x.s||0)+kmv(x)));
   var b=mk('button','','×');b.setAttribute('aria-label','Elimina');b.onclick=function(){delEntry(x.id)};
   r.appendChild(d);r.appendChild(a);
@@ -1051,10 +1052,10 @@ function renderF24(){
 }
 function fillCat(){
   var s=$('cat'),v=s.value;s.textContent='';
-  cats.forEach(function(n){var o=mk('option','',n);o.value=n;s.appendChild(o)});
+  cats.forEach(function(n){var o=mk('option','',catIcon(n)+' '+n);o.value=n;s.appendChild(o)});
   if(v&&cats.indexOf(v)>=0)s.value=v;
   var L=$('catl');L.textContent='';
-  cats.forEach(function(n){var r=mk('div','it'),d=mk('span','d',n),b=mk('button','','×');b.setAttribute('aria-label','Elimina voce');b.onclick=function(){cats=cats.filter(function(y){return y!==n});save();render()};r.appendChild(d);r.appendChild(b);L.appendChild(r)});
+  cats.forEach(function(n){var r=mk('div','it'),d=mk('span','d',catIcon(n)+' '+n),b=mk('button','','×');b.setAttribute('aria-label','Elimina voce');b.onclick=function(){cats=cats.filter(function(y){return y!==n});save();render()};r.appendChild(d);r.appendChild(b);L.appendChild(r)});
 }
 function fillW(auto){
   var s=$('wSel'),v=s.value,dv=$('date').value,m=(dv||month).slice(0,7);s.textContent='';
