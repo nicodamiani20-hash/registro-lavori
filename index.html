@@ -515,7 +515,7 @@ function snap(){return {entries:entries,clients:clients,cats:cats,imp:imps,f24:f
 function TS(){var t=Date.now();try{localStorage.setItem('ledger_ts',String(t))}catch(e){}return t}
 function save(){
   try{localStorage.setItem('ledger2',JSON.stringify(snap()))}catch(e){}
-  if(ref){var er=function(e){status('Errore di salvataggio: '+((e&&e.message)||e))};try{ref.set({json:JSON.stringify(snap()),ts:TS()}).then(function(){status('Salvato nel tuo spazio privato')}).catch(er)}catch(e){er(e)}}
+  if(ref){var er=function(e){var m=(e&&e.message)||String(e);if(/terminated|closing/i.test(m)){try{var t=+sessionStorage.getItem('fs_rl')||0;if(Date.now()-t>60000){sessionStorage.setItem('fs_rl',String(Date.now()));status('Riconnessione in corso\u2026');setTimeout(function(){location.reload()},400);return}}catch(x){}}status('Errore di salvataggio: '+m)};try{ref.set({json:JSON.stringify(snap()),ts:TS()}).then(function(){status('Salvato nel tuo spazio privato')}).catch(er)}catch(e){er(e)}}
   else{try{localStorage.setItem('ledger2',JSON.stringify(snap()));status('Salvato solo su questo dispositivo')}catch(e){status('Impossibile salvare')}}
 }
 function kmv(e){if(e.kmo!=null)return e.k?e.kmo:0;var c=e.c?cl(e.c):null;return e.k&&c&&c.kmr?Math.round(e.k*c.kmr*100)/100:0}
@@ -2046,7 +2046,7 @@ local();
   var CFG={apiKey:"AIzaSyBlyT1Y64cUGMKXMk7NKMYy7RmB5hP98fI",authDomain:"registro-lavori.firebaseapp.com",projectId:"registro-lavori",storageBucket:"registro-lavori.firebasestorage.app",messagingSenderId:"617360169227",appId:"1:617360169227:web:c2e5a114a9855c4b55aa0e"};
   local();
   var auth,fs;
-  try{fb.initializeApp(CFG);auth=fb.auth();window.__gauth=auth;fs=fb.firestore();try{fs.enablePersistence({synchronizeTabs:true}).catch(function(){})}catch(e){}}catch(e){return}
+  try{fb.initializeApp(CFG);auth=fb.auth();window.__gauth=auth;fs=fb.firestore()}catch(e){return}
   var unsub=null,skipped=false;
   function lts(){return +(lsg('ledger_ts')||0)}
   function applyRemote(j,ts){
