@@ -681,6 +681,32 @@ async function docDownload(){status('Preparo la cartella ZIP…');
     var z=await docZip(g.items);var zn='Documenti aziendali - '+docSafe((company&&company.n)||'ditta')+'.zip';if(window.__capture){var cf=window.__capture;window.__capture=null;await cf({filename:zn,data:z})}else{var shared=false;try{var zf=new File([z],zn,{type:'application/zip'});if(navigator.canShare&&navigator.canShare({files:[zf]})){await navigator.share({files:[zf],title:zn});shared=true}}catch(e){if(e&&e.name==='AbortError')return}
       if(!shared){var an=document.createElement('a');an.href=URL.createObjectURL(z);an.download=zn;document.body.appendChild(an);an.click();an.remove()}}status('ZIP pronto ('+g.items.length+' documenti)'+(g.miss?', '+g.miss+' non disponibili':''))}
   catch(e){status('ZIP non creato: '+((e&&e.message)||e))}}
+async function docWaOpen(){status('Preparo i documenti…');var g;try{g=await docCollect()}catch(e){status('Documenti non leggibili');return}
+  if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
+  var o=$('dwa');if(!o){o=mk('div');o.id='dwa';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:14px';document.body.appendChild(o)}
+  o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Chiudi');bar.appendChild(can);o.appendChild(bar);
+  var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';cd.appendChild(mk('div','k','Invia documenti su WhatsApp'));
+  var l1=mk('div','k','Numero del destinatario (facoltativo)');l1.style.marginTop='10px';var ti=document.createElement('input');ti.type='tel';ti.placeholder='es. 333 1234567';ti.setAttribute('inputmode','tel');ti.value=coGet('doc_wa','');cd.appendChild(l1);cd.appendChild(ti);
+  var l4=mk('div','k','Documenti da inviare');l4.style.marginTop='10px';cd.appendChild(l4);var ck={};
+  g.items.forEach(function(x){var lb=document.createElement('label');lb.style.cssText='display:flex;gap:8px;align-items:center;margin:6px 0;font-size:15px';var c=document.createElement('input');c.type='checkbox';c.checked=true;c.style.cssText='width:auto;margin:0';ck[x.key]=c;lb.appendChild(c);lb.appendChild(document.createTextNode(x.num+'. '+x.label+' ('+Math.round(x.blob.size/1024)+' KB)'));cd.appendChild(lb)});
+  var zl=document.createElement('label');zl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var zc=document.createElement('input');zc.type='checkbox';zc.style.cssText='width:auto;margin:0';zl.appendChild(zc);zl.appendChild(document.createTextNode('Invia tutto in un unico file ZIP'));cd.appendChild(zl);
+  var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=8;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');
+  var sel=function(){return g.items.filter(function(x){return ck[x.key].checked})};
+  var mg=function(){var c=company||{};ta.value=(new Date().getHours()<14?'Buongiorno':'Buonasera')+',\ntrasmetto la documentazione aziendale'+(c.n?' di '+c.n:'')+':\n\n'+sel().map(function(x){return x.num+'. '+x.label+(x.exp?' (scad. '+new Date(x.exp+'T12:00:00').toLocaleDateString('it-IT')+')':'')}).join('\n')+'\n\nCordiali saluti'+(c.t?',\n'+c.t:'')};mg();
+  g.items.forEach(function(x){ck[x.key].onchange=mg});cd.appendChild(l3);cd.appendChild(ta);
+  var b1=mk('button','pri','Invia con i file su WhatsApp');b1.style.cssText='display:block;width:100%;margin:14px 0 0';
+  var b2=mk('button','','Apri WhatsApp solo con il messaggio');b2.style.cssText='display:block;width:100%;margin:10px 0 0';
+  var hint=mk('div','hint','Con il primo pulsante si apre il foglio di condivisione del telefono: scegli WhatsApp e la persona. Il messaggio viene copiato, incollalo se non compare da solo.');hint.style.marginTop='10px';
+  var saveNum=function(){var v=ti.value.trim();if(v){try{localStorage.setItem('doc_wa',v)}catch(e){}}};
+  b1.onclick=async function(){var s2=sel();if(!s2.length){status('Seleziona almeno un documento');return}saveNum();var tx=ta.value.trim();
+    try{navigator.clipboard&&navigator.clipboard.writeText(tx).catch(function(){})}catch(e){}
+    try{var fl;if(zc.checked){var z=await docZip(s2);fl=[new File([z],'Documenti aziendali.zip',{type:'application/zip'})]}else fl=s2.map(function(x){return new File([x.blob],x.file,{type:x.type})});
+      if(navigator.canShare&&navigator.canShare({files:fl})){await navigator.share({files:fl,text:tx});return}
+      var zz=zc.checked?fl[0]:new File([await docZip(s2)],'Documenti aziendali.zip',{type:'application/zip'}),an=document.createElement('a');an.href=URL.createObjectURL(zz);an.download=zz.name;document.body.appendChild(an);an.click();an.remove();
+      status('Questo dispositivo non condivide file: ZIP scaricato, allegalo in WhatsApp');var n=waNum(ti.value);setTimeout(function(){window.open(n?'https://wa.me/'+n+'?text='+encodeURIComponent(tx):'https://wa.me/?text='+encodeURIComponent(tx),'_blank')},900)}
+    catch(e){if(e&&e.name==='AbortError')return;status('Condivisione non riuscita: '+((e&&e.message)||e))}};
+  b2.onclick=function(){saveNum();var n=waNum(ti.value),tx=ta.value.trim();window.open(n?'https://wa.me/'+n+'?text='+encodeURIComponent(tx):'https://wa.me/?text='+encodeURIComponent(tx),'_blank')};
+  cd.appendChild(b1);cd.appendChild(b2);cd.appendChild(hint);o.appendChild(cd);o.style.display='block';can.onclick=function(){o.style.display='none'}}
 async function docMailOpen(){status('Preparo i documenti…');var g;try{g=await docCollect()}catch(e){status('Documenti non leggibili');return}
   if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
   var o=$('dcp');if(!o){o=mk('div');o.id='dcp';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:14px';document.body.appendChild(o)}
@@ -742,10 +768,11 @@ function renderDocs(){
     if(D[2]&&m){var ex=mk('div');ex.style.cssText='margin-top:10px;display:flex;align-items:center;gap:8px';ex.appendChild(mk('span','hint','Scadenza'));var di=document.createElement('input');di.type='date';di.value=m.exp||'';di.style.cssText='flex:1;min-width:0;box-sizing:border-box;font-size:16px;padding:10px;border-radius:10px';di.onchange=function(){if(di.value)m.exp=di.value;else delete m.exp;save();renderDocs()};ex.appendChild(di);c.appendChild(ex)}
   });
   if(Object.keys(docMeta()).length){var ac=mk('div','card');ac.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(ac);ac.appendChild(mk('b','','Tutti i documenti'));
-    var ah=mk('div','hint','Cartella ZIP con i file numerati e un elenco con descrizione e scadenze, oppure invio diretto per email con l\u2019intestazione della ditta.');ah.style.margin='6px 0 10px';ac.appendChild(ah);
+    var ah=mk('div','hint','Cartella ZIP con i file numerati e un elenco con descrizione e scadenze, oppure invio diretto per email (con l\u2019intestazione della ditta) o su WhatsApp.');ah.style.margin='6px 0 10px';ac.appendChild(ah);
     var ar=mk('div');ar.style.cssText='display:flex;gap:8px;flex-wrap:wrap';ac.appendChild(ar);
     var bz=mk('button','pri','Scarica ZIP');bz.style.cssText='margin:0;width:auto';bz.onclick=docDownload;ar.appendChild(bz);
-    if(window.__gconnect){var be=mk('button','','Invia per email');be.style.cssText='margin:0;width:auto';be.onclick=docMailOpen;ar.appendChild(be)}}
+    if(window.__gconnect){var be=mk('button','','Invia per email');be.style.cssText='margin:0;width:auto';be.onclick=docMailOpen;ar.appendChild(be)}
+    var bw=mk('button','','Invia su WhatsApp');bw.style.cssText='margin:0;width:auto';bw.onclick=docWaOpen;ar.appendChild(bw)}
   inpf.onchange=async function(){var f=inpf.files&&inpf.files[0],k=window.__docK;if(!f||!k)return;status('Caricamento documento\u2026');
     try{var o=await ATT.prep(f);await ATT.put('doc_'+k,o);var m=docMeta();m[k]=Object.assign({},m[k]&&m[k].exp?{exp:m[k].exp}:{},{name:o.name,type:o.type,at:Date.now()});save();renderDocs();
       status('Documento caricato');ATT.up('doc_'+k,o).then(function(ok){if(ok===false)status('Salvato solo su questo dispositivo')}).catch(function(){status('Sincronizzazione non riuscita: il documento resta su questo dispositivo')})}
