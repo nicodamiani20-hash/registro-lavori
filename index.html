@@ -652,13 +652,20 @@ function openBlob(r){
   if(isPdf){var fr=document.createElement('iframe');fr.src=u;fr.style.cssText='width:100%;height:100%;border:0;background:#fff';bd.appendChild(fr)}
   else{var im=document.createElement('img');im.src=u;im.style.cssText='max-width:100%;height:auto;display:block';bd.appendChild(im)}
   o.appendChild(bd);o.style.display='flex'}
-var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0]];
+var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0]];
 function docMeta(){if(!company.docs)company.docs={};return company.docs}
 function renderDocs(){
   var R=$('docR');if(!R)return;R.textContent='';var cd=mk('div','card');R.appendChild(cd);
   if(!coGate(R,cd,16,renderDocs))return;
   cd.appendChild(mk('div','k','Documenti aziendali'));
   var h=mk('div','hint','Carica una foto o un PDF (max 4 MB). Sono visibili solo dopo la password o Face ID e si sincronizzano con gli altri dispositivi.');h.style.margin='6px 0 4px';cd.appendChild(h);
+  var mc=mk('div','card');mc.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(mc);mc.appendChild(mk('b','','Matricole'));
+  if(!company.mat)company.mat={};
+  [['inps','Matricola INPS'],['inail','Matricola INAIL']].forEach(function(f){var l=mk('div','k',f[1]);l.style.margin='10px 2px 4px';mc.appendChild(l);
+    var row=mk('div');row.style.cssText='display:flex;gap:8px';var i=document.createElement('input');i.type='text';i.placeholder=f[1];i.value=company.mat[f[0]]||'';i.setAttribute('autocomplete','off');i.style.cssText='flex:1;min-width:0;box-sizing:border-box;font-size:17px;padding:12px;border-radius:12px';
+    i.onchange=function(){var v=i.value.trim();if(v)company.mat[f[0]]=v;else delete company.mat[f[0]];save();status('Salvato')};
+    var cp=mk('button','','Copia');cp.style.cssText='margin:0;width:auto;padding:9px 14px';cp.onclick=function(){var v=i.value.trim();if(!v){status('Niente da copiare');return}try{navigator.clipboard.writeText(v).then(function(){status('Copiato')},function(){i.select();status('Selezionato: copia manualmente')})}catch(e){i.select()}};
+    row.appendChild(i);row.appendChild(cp);mc.appendChild(row)});
   var inpf=$('docin'),now=new Date().toISOString().slice(0,10);
   DOCS.forEach(function(D){
     var k=D[0],m=docMeta()[k],c=mk('div','card');c.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(c);
