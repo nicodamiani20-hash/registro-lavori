@@ -1,4 +1,4 @@
-var V='rl-v108',CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','coolvetica.otf','carta-intestata.jpg'];
+var V='rl-v109',CORE=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png','coolvetica.otf','carta-intestata.jpg'];
 self.addEventListener('install',function(e){e.waitUntil(caches.open(V).then(function(c){return c.addAll(CORE)}).then(function(){return self.skipWaiting()}))});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!==V}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))});
 self.addEventListener('fetch',function(e){

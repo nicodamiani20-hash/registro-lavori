@@ -537,7 +537,7 @@ function fillSel(s){
 }
 /*ATT*/var ATT=(function(){var db=null;function open(){return new Promise(function(ok,ko){if(db)return ok(db);var q=indexedDB.open('rl_att',1);q.onupgradeneeded=function(){q.result.createObjectStore('f')};q.onsuccess=function(){db=q.result;ok(db)};q.onerror=function(){ko(q.error)}})}
 function tx(m,f){return open().then(function(d){return new Promise(function(ok,ko){var t=d.transaction('f',m),s=t.objectStore('f'),r=f(s);t.oncomplete=function(){ok(r&&r.result)};t.onerror=function(){ko(t.error)}})})}
-function prep(file){return new Promise(function(ok,ko){if(/^image\//.test(file.type)){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){var k=Math.min(1,1800/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?ok({blob:b,type:'image/jpeg',name:file.name||'foto.jpg'}):ko('img')},'image/jpeg',.82)};im.onerror=function(){ko('img')};im.src=u}else if(file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')){if(file.size>4e6)return ko('big');ok({blob:file,type:'application/pdf',name:file.name||'allegato.pdf'})}else ko('fmt')})}
+function prep(file){return new Promise(function(ok,ko){if(/^image\//.test(file.type)){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){var k=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){URL.revokeObjectURL(u);b?ok({blob:b,type:'image/jpeg',name:file.name||'foto.jpg'}):ko('img')},'image/jpeg',.7)};im.onerror=function(){ko('img')};im.src=u}else if(file.type==='application/pdf'||/\.pdf$/i.test(file.name||'')){if(file.size>4e6)return ko('big');ok({blob:file,type:'application/pdf',name:file.name||'allegato.pdf'})}else ko('fmt')})}
 function col(){return window.__fs&&window.__uid?window.__fs.collection('users/'+window.__uid+'/att'):null}
 function b64(blob){return new Promise(function(ok,ko){var fr=new FileReader;fr.onload=function(){ok(String(fr.result).replace(/^[^,]*,/,''))};fr.onerror=ko;fr.readAsDataURL(blob)})}
 function up(id,o){var c=col();if(!c)return Promise.resolve(false);
@@ -560,6 +560,7 @@ function attBox(x){
     var d=mk('button','','Rimuovi');d.style.cssText='margin:0;padding:6px 12px;width:auto';d.onclick=function(){ATT.del(x.id);delete x.att;save();render();status('Allegato rimosso')};w.appendChild(o);w.appendChild(d)}
   else{var a=mk('button','','Allega documento');a.style.cssText='margin:0;padding:6px 12px;width:auto';a.onclick=function(){f.click()};w.appendChild(a)}
   w.appendChild(f);return w}
+function shrink(src,mx,q){var w=src.width||src.naturalWidth,h=src.height||src.naturalHeight,k=Math.min(1,mx/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(src,0,0,c.width,c.height);var u=c.toDataURL('image/jpeg',q),r={u:u,w:c.width,h:c.height};c.width=c.height=0;return r}
 async function addAtt(doc,ex,deco){
   var L=ex.filter(function(e){return e.att});if(!L.length)return;
   for(var i=0;i<L.length;i++){var e=L[i],rec=null;try{rec=await ATT.get(e.id)}catch(_){}if(!rec)continue;
@@ -569,11 +570,11 @@ async function addAtt(doc,ex,deco){
         if(!window.pdfjsLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
         pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         var pd=await pdfjsLib.getDocument({data:await rec.blob.arrayBuffer()}).promise;
-        for(var n=1;n<=Math.min(pd.numPages,6);n++){var p=await pd.getPage(n),vp=p.getViewport({scale:1.6}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await p.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;pg.push({u:cv.toDataURL('image/jpeg',.8),w:cv.width,h:cv.height});cv.width=cv.height=0}
+        for(var n=1;n<=Math.min(pd.numPages,6);n++){var p=await pd.getPage(n),vp=p.getViewport({scale:1.5}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await p.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;pg.push(shrink(cv,1100,.6));cv.width=cv.height=0}
       }else{
-        var u=await new Promise(function(ok,ko){var fr=new FileReader;fr.onload=function(){ok(fr.result)};fr.onerror=ko;fr.readAsDataURL(rec.blob)});
-        var sz=await new Promise(function(ok,ko){var im=new Image;im.onload=function(){ok({w:im.width,h:im.height})};im.onerror=ko;im.src=u});
-        pg.push({u:u,w:sz.w,h:sz.h})}
+        var iu=URL.createObjectURL(rec.blob);
+        var im0=await new Promise(function(ok,ko){var im=new Image;im.onload=function(){ok(im)};im.onerror=ko;im.src=iu});
+        pg.push(shrink(im0,1100,.6));URL.revokeObjectURL(iu)}
     }catch(_){continue}
     pg.forEach(function(im,k){
       doc.addPage();deco();doc.setTextColor(61,139,255);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('Allegato: '+e.label+' – '+new Date(e.d+'T12:00:00').toLocaleDateString('it-IT')+(pg.length>1?' (pag. '+(k+1)+'/'+pg.length+')':''),15,48);doc.setTextColor(0);
@@ -1225,6 +1226,51 @@ function setPaid(x,v,msg){
     var r=await fetch('https://router.project-osrm.org/route/v1/driving/'+a.join(',')+';'+b.join(',')+'?overview=false');
     var j=await r.json();if(!j||j.code!=='Ok'||!j.routes||!j.routes.length)throw {code:'noroute'};return j.routes[0].distance/1000}
   window.kmCalc=async function(from,to){var a=await geo(from),b=await geo(to);return route(a,b)};
+  function short(r){var a=r.address||{},st=a.road||a.pedestrian||a.square||a.neighbourhood||'',hn=a.house_number?' '+a.house_number:'',ct=a.city||a.town||a.village||a.municipality||a.hamlet||'',pv=a.county&&a.state_code?'':'';
+    var nm=r.name&&r.name!==st?r.name:'';var parts=[];if(nm)parts.push(nm);if(st)parts.push(st+hn);if(ct)parts.push(ct);var s=parts.join(', ');return s||String(r.display_name||'').split(',').slice(0,3).join(',').trim()}
+  window.__geoPut=function(q,v){var cache={};try{cache=JSON.parse(ls(CK,'{}'))||{}}catch(e){}cache[q.toLowerCase().replace(/\s+/g,' ').trim()]=v;ss(CK,JSON.stringify(cache))};
+  async function nsearch(q){var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=6&addressdetails=1&accept-language=it&countrycodes=it,ch,fr,at,si,de&q='+encodeURIComponent(q));return r.json()}
+  function loadLeaflet(){return new Promise(function(ok,ko){if(window.L)return ok();var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(l);var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';s.onload=ok;s.onerror=ko;document.head.appendChild(s)})}
+  function openMap(start,done){
+    var o=mk('div');o.style.cssText='position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column';
+    var top=mk('div');top.style.cssText='padding:calc(10px + env(safe-area-inset-top,0px)) 10px 8px;display:flex;gap:8px';
+    var q=document.createElement('input');q.type='text';q.placeholder='Cerca un luogo o un indirizzo';q.style.cssText='margin:0;flex:1';
+    var sb=mk('button','pri','Cerca');sb.style.cssText='margin:0;width:auto;padding:0 16px';top.appendChild(q);top.appendChild(sb);
+    var mp=mk('div');mp.style.cssText='flex:1;min-height:0;background:#222';
+    var bot=mk('div');bot.style.cssText='padding:10px 10px calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px';
+    var lab=mk('div','hint','Tocca la mappa per mettere il segnaposto');lab.style.margin='0';
+    var row=mk('div','row'),ok=mk('button','pri','Usa questa posizione'),no=mk('button','','Annulla');ok.style.margin=no.style.margin='0';ok.disabled=true;row.appendChild(ok);row.appendChild(no);
+    bot.appendChild(lab);bot.appendChild(row);o.appendChild(top);o.appendChild(mp);o.appendChild(bot);document.body.appendChild(o);
+    var map=null,mk0=null,cur=null;
+    function close(){try{map&&map.remove()}catch(e){}o.remove()}
+    no.onclick=close;
+    async function place(lat,lon,zoom){
+      if(mk0)mk0.setLatLng([lat,lon]);else mk0=L.marker([lat,lon]).addTo(map);
+      if(zoom)map.setView([lat,lon],zoom);else map.panTo([lat,lon]);
+      lab.textContent='Cerco l’indirizzo…';ok.disabled=true;
+      try{var r=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&zoom=18&accept-language=it&lat='+lat+'&lon='+lon);var j=await r.json();
+        cur={label:short(j)||(lat.toFixed(5)+', '+lon.toFixed(5)),lat:lat,lon:lon};lab.textContent=cur.label}
+      catch(e){cur={label:lat.toFixed(5)+', '+lon.toFixed(5),lat:lat,lon:lon};lab.textContent=cur.label}
+      ok.disabled=false}
+    ok.onclick=function(){if(cur){window.__geoPut(cur.label,[cur.lon,cur.lat]);done(cur.label);close()}};
+    async function find(){var t=q.value.trim();if(!t)return;lab.textContent='Cerco…';try{var r=await nsearch(t);if(!r.length){lab.textContent='Nessun risultato: prova con un nome più preciso';return}place(+r[0].lat,+r[0].lon,16)}catch(e){lab.textContent='Ricerca non riuscita: controlla la connessione'}}
+    sb.onclick=find;q.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();find()}};
+    loadLeaflet().then(async function(){
+      var c=[45.2,10.2],z=9;
+      try{if(start){var g=await geo(start);c=[g[1],g[0]];z=14}}catch(e){}
+      map=L.map(mp,{zoomControl:true}).setView(c,z);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+      map.on('click',function(e){place(e.latlng.lat,e.latlng.lng)});setTimeout(function(){map.invalidateSize()},200)
+    }).catch(function(){lab.textContent='Mappa non caricata: controlla la connessione'})
+  }
+  function suggest(loc,onPick){
+    var box=mk('div');box.style.cssText='display:none;border:1px solid var(--bd);border-radius:12px;background:var(--card);margin:-4px 0 8px;overflow:hidden';
+    var tmr=0,seq=0;
+    loc.addEventListener('input',function(){if(loc.__skip){loc.__skip=false;return}clearTimeout(tmr);var t=loc.value.trim();if(t.length<3){box.style.display='none';return}
+      tmr=setTimeout(async function(){var me=++seq;try{var r=await nsearch(t);if(me!==seq)return;box.textContent='';if(!r.length){box.style.display='none';return}
+        r.forEach(function(x){var b=mk('button','',short(x));b.type='button';b.style.cssText='display:block;width:100%;text-align:left;margin:0;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:transparent;padding:12px 14px;font-size:15px';
+          b.onclick=function(){var lb=short(x);window.__geoPut(lb,[+x.lon,+x.lat]);box.style.display='none';onPick(lb)};box.appendChild(b)});box.style.display='block'}catch(e){}},400)});
+    loc.addEventListener('blur',function(){setTimeout(function(){box.style.display='none'},250)});
+    return box}
   var UIS=[];
   function mkUI(pre,kmEl,before){
     var w=mk('div');w.id=pre+'kw';w.style.cssText='margin:6px 0';
@@ -1245,7 +1291,10 @@ function setPaid(x,v,msg){
     }
     loc.onchange=go;bt.onclick=go;rt.onchange=function(){ss(RK,rt.checked?'1':'0');UIS.forEach(function(u){u.rt.checked=rt.checked});go()};
     home.onchange=function(){ss(HK,home.value.trim());UIS.forEach(function(u){u.home.value=home.value});go()};
-    w.appendChild(loc);w.appendChild(bt);w.appendChild(hint);w.appendChild(home);w.appendChild(rl);
+    var sg=suggest(loc,function(lb){loc.value=lb;loc.__skip=true;loc.dispatchEvent(new Event('input'));go()});
+    var mb=mk('button','','Scegli sulla mappa');mb.type='button';mb.style.cssText='display:block;width:100%;margin:4px 0';
+    mb.onclick=function(){openMap(loc.value.trim()||home.value.trim()||'Gottolengo, BS',function(lb){loc.value=lb;loc.__skip=true;loc.dispatchEvent(new Event('input'));go()})};
+    w.appendChild(loc);w.appendChild(sg);w.appendChild(mb);w.appendChild(bt);w.appendChild(hint);w.appendChild(home);w.appendChild(rl);
     before.parentNode.insertBefore(w,before);UIS.push({rt:rt,home:home,hint:hint});return w;
   }
   window.__mkKmUI=mkUI;
