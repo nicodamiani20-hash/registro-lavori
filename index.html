@@ -210,7 +210,7 @@ button.pri{background:var(--ac);color:var(--ac2);border-color:var(--ac);width:10
 .in{color:var(--in)}.out{color:var(--out)}
 .seg{display:flex;gap:8px;margin-bottom:10px}
 .seg button{flex:1}.seg button.on{background:var(--ac);color:var(--ac2);border-color:var(--ac)}
-input,select{font:inherit;width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin-bottom:8px}
+input,select,textarea{font:inherit;width:100%;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);margin-bottom:8px}
 input[type=color]{padding:2px;height:42px}
 input[type=checkbox]{width:auto;margin:0 8px 0 0}
 label.ck{display:flex;align-items:center;margin:4px 0 8px;font-size:14px}
@@ -1408,11 +1408,11 @@ async function sendRen(){
   rcompose(r.c,got,rtitle());
 }
 function rcompose(c,pdf,tit){
-  var o=$('rcp');if(!o){o=mk('div');o.id='rcp';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:14px';document.body.appendChild(o)}
+  var o=$('rcp');if(!o){o=mk('div');o.id='rcp';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
   o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Annulla'),pv=mk('button','pri','Anteprima');bar.appendChild(can);bar.appendChild(pv);o.appendChild(bar);
   var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';
   var l1=mk('div','k','Destinatario'),to=document.createElement('input');to.type='email';to.value=c.email||'';to.placeholder='email@cliente.it';to.setAttribute('autocapitalize','off');
-  cd.appendChild(mk('div','k','Invia a '+c.name));cd.appendChild(l1);cd.appendChild(to);
+  var l0=mk('div','k','Invia a '+c.name);l0.style.cssText='font-weight:700;margin-bottom:12px';l1.style.marginTop='4px';cd.appendChild(l0);cd.appendChild(l1);cd.appendChild(to);
   if(!c.email)cd.appendChild(mk('div','hint','Manca l’email del cliente: scrivila qui, verrà salvata nella scheda Clienti.'));
   var l2=mk('div','k','Oggetto');l2.style.marginTop='10px';var sj=document.createElement('input');sj.value=tit;cd.appendChild(l2);cd.appendChild(sj);
   var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=5;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');ta.value='Trasmetto in allegato il rendiconto dei lavori svolti ('+tit.replace(/^Rendiconto mensile\s*-\s*/i,'').replace(/^Rendiconto\s+/i,'')+').';cd.appendChild(l3);cd.appendChild(ta);
