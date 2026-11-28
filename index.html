@@ -810,8 +810,8 @@ function djobPicker(parent){
   var all=itpJobs(true),now=new Date().toISOString().slice(0,7);
   if(!DJOB.m)DJOB.m=all.some(function(j){return j.from.slice(0,7)<=now&&j.to.slice(0,7)>=now})||!all.length?now:all[0].from.slice(0,7);
   var l=mk('div','k','Mese e lavoro');l.style.margin='4px 2px 4px';parent.appendChild(l);
-  var mi=document.createElement('input');mi.type='month';mi.value=DJOB.m;mi.style.cssText='width:100%;box-sizing:border-box;font-size:16px;padding:11px;border-radius:10px;margin-bottom:8px';parent.appendChild(mi);
-  var se=document.createElement('select');se.style.cssText='width:100%;box-sizing:border-box;font-size:16px;padding:11px;border-radius:10px;margin-bottom:10px';parent.appendChild(se);
+  var mi=document.createElement('input');mi.type='month';mi.value=DJOB.m;mi.style.cssText='display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none;height:44px;line-height:22px;font-size:16px;padding:0 12px;border-radius:10px;margin:0 0 8px;text-align:left;text-align-last:left';parent.appendChild(mi);
+  var se=document.createElement('select');se.style.cssText='display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;height:44px;font-size:15px;padding:0 10px;border-radius:10px;margin:0 0 10px;text-overflow:ellipsis';parent.appendChild(se);
   var fill=function(){se.textContent='';var L=all.filter(function(j){return j.from.slice(0,7)<=DJOB.m&&j.to.slice(0,7)>=DJOB.m}),o0=document.createElement('option');o0.value='';o0.textContent=L.length?'Nessun lavoro (solo i documenti)':'Nessun lavoro in questo mese';se.appendChild(o0);
     L.forEach(function(j){var cl=clients.filter(function(x){return x.id===j.c})[0]||{},o=document.createElement('option');o.value=j.id;o.textContent=(j.from===j.to?itpDm(j.from):itpDm(j.from)+' \u2192 '+itpDm(j.to))+' \u00b7 '+(cl.name||'?')+(j.n?' \u00b7 '+j.n:'');se.appendChild(o)});
     if(!L.some(function(j){return j.id===DJOB.id}))DJOB.id=L.length?L[0].id:null;se.value=DJOB.id||''};
