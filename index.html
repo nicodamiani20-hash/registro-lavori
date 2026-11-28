@@ -786,7 +786,8 @@ async function fillOpen(file){status('Apro il modulo…');
 function itpJobs(all){
   var L=entries.filter(function(e){return e.t==='lavoro'}).sort(function(a,b){return a.d.localeCompare(b.d)}),G=[];
   L.forEach(function(e){var g=G[G.length-1],gap=g?Math.round((new Date(e.d+'T12:00:00')-new Date(g.to+'T12:00:00'))/864e5):9;
-    if(g&&g.c===e.c&&(g.n||'')===(e.n||'')&&(g.loc||'')===(e.loc||'')&&gap<=1)g.to=e.d;else G.push({id:e.id,c:e.c,n:e.n||'',loc:e.loc||'',from:e.d,to:e.d})});
+    if(g&&g.c===e.c&&gap<=1){g.to=e.d;if(e.n&&g.ns.indexOf(e.n)<0)g.ns.push(e.n);if(e.loc&&g.ls.indexOf(e.loc)<0)g.ls.push(e.loc)}else G.push({id:e.id,c:e.c,ns:e.n?[e.n]:[],ls:e.loc?[e.loc]:[],from:e.d,to:e.d})});
+  G.forEach(function(g){g.n=g.ns.join(' / ');g.loc=g.ls.join(' / ')});
   G.reverse();return all?G:G.slice(0,60)}
 function itpDm(d){return d.split('-').reverse().join('/')}
 function itpJobVals(j){var cl=clients.filter(function(x){return x.id===j.c})[0]||{},d=new Date(),td=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(),co=company||{};
