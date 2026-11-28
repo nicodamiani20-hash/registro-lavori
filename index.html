@@ -651,7 +651,16 @@ function openBlob(r){
   var t=mk('div','',nm);t.style.cssText='flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;opacity:.7';
   bar.appendChild(cl2);bar.appendChild(t);bar.appendChild(sh);o.appendChild(bar);
   var bd=mk('div');bd.style.cssText='flex:1;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;align-items:flex-start;justify-content:center;background:#111';
-  if(isPdf){var fr=document.createElement('iframe');fr.src=u;fr.style.cssText='width:100%;height:100%;border:0;background:#fff';bd.appendChild(fr)}
+  if(isPdf){
+    var fallback=function(){bd.textContent='';var fr=document.createElement('iframe');fr.src=u;fr.style.cssText='width:100%;height:100%;border:0;background:#fff';bd.appendChild(fr)};
+    bd.style.flexDirection='column';bd.style.alignItems='center';var ld=mk('div','','Carico le pagine\u2026');ld.style.cssText='color:#ccc;padding:20px';bd.appendChild(ld);
+    (async function(){try{
+      if(!window.pdfjsLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      var pd=await pdfjsLib.getDocument({data:await r.blob.arrayBuffer()}).promise;bd.textContent='';
+      var W=Math.min(bd.clientWidth||360,900),dpr=Math.min(2,window.devicePixelRatio||1);
+      for(var n=1;n<=pd.numPages;n++){var pg=await pd.getPage(n),v0=pg.getViewport({scale:1}),k=W/v0.width,vp=pg.getViewport({scale:k*dpr}),cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;cv.style.cssText='width:'+W+'px;height:'+(vp.height/dpr)+'px;background:#fff;margin:0 0 8px;display:block';bd.appendChild(cv);await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise}
+    }catch(e){fallback()}})()}
   else{var im=document.createElement('img');im.src=u;im.style.cssText='max-width:100%;height:auto;display:block';bd.appendChild(im)}
   o.appendChild(bd);o.style.display='flex'}
 /*DOCZIP*/function crc32(u){var t=crc32.t;if(!t){t=crc32.t=new Uint32Array(256);for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}}var r=0xFFFFFFFF;for(var i=0;i<u.length;i++)r=t[(r^u[i])&255]^(r>>>8);return (r^0xFFFFFFFF)>>>0}
