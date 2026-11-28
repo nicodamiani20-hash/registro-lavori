@@ -468,6 +468,7 @@ body:not(.spl-done) #app,body:not(.spl-done) main{animation:splApp .7s ease 2s b
 <section id="s16" style="display:none">
   <div id="docR"></div>
   <input type="file" id="docin" accept="image/*,application/pdf" style="display:none">
+  <input type="file" id="docfill" accept="application/pdf" style="display:none">
 </section>
 
 <section id="s15" style="display:none">
@@ -738,6 +739,35 @@ async function docMailOpen(){status('Preparo i documenti…');var g;try{g=await 
         ok();o.style.display='none';status('Email inviata a '+a)}
       catch(e){var cc=e&&e.code;status(cc==='needs_reauth'?'Serve il permesso di inviare: collega Gmail dalla scheda Email':'Email non inviata ('+(cc||'errore')+')')}
       bt.disabled=false;bt.textContent='Invia'},fl)}}
+/*FILL*/function fillData(){var c=company||{},m=c.mat||{},d=new Date(),dd=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
+  return {rag:c.n||'',tit:c.t||'',forma:c.forma||'',iva:c.iva||'',cf:c.cf||'',rea:c.rea||'',ind:c.a||'',cap:c.cap||'',com:c.c||'',prov:c.p||'',full:[c.a,[c.cap,c.c].filter(Boolean).join(' ')+(c.p?' ('+c.p+')':'')].filter(Boolean).join(', '),tel:c.tel||'',em:c.em||'',pec:c.pec||'',inps:m.inps||'',inail:m.inail||'',data:dd,luogo:c.c||'',att:c.d||''}}
+function fillGuess(nm,D){var n=String(nm).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+  var R=[['pec',/pec|postacertificata/],['inail',/inail|posizioneassicurativa/],['inps',/inps/],['iva',/partitaiva|piva|vat|^iva/],['cf',/codicefiscale|codfisc|^cf|cfiscale|taxcode/],['rea',/^rea|numerorea/],
+    ['rag',/ragionesociale|denominazione|ditta|impresa|societa|azienda|companyname|nomeimpresa|intestatario/],['em',/email|mail/],['tel',/telefono|tel$|^tel|cellulare|cell$|phone/],['cap',/^cap|codicepostale|zip/],['prov',/^prov|provincia/],['com',/comune|citta|localita|city/],
+    ['full',/indirizzocompleto|sedelegale|sedeoperativa/],['ind',/indirizzo|^via|sede|address/],['tit',/titolare|legalerappresentante|rappresentante|referente|firmatario|cognomenome|nomecognome|dichiarante/],['data',/^data$|datadioggi|datacompilazione|datadelladichiarazione/],['luogo',/^luogo/]];
+  for(var i=0;i<R.length;i++){if(R[i][1].test(n)&&D[R[i][0]])return {k:R[i][0],v:D[R[i][0]]}}return null}
+async function fillOpen(file){status('Apro il modulo…');
+  try{if(!window.PDFLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js')}catch(e){status('Libreria PDF non raggiungibile: serve la connessione');return}
+  var buf=await file.arrayBuffer(),doc;try{doc=await PDFLib.PDFDocument.load(buf,{ignoreEncryption:true})}catch(e){status('PDF non leggibile');return}
+  var form=doc.getForm(),fs=form.getFields(),D=fillData(),rows=[];
+  fs.forEach(function(f){if(f instanceof PDFLib.PDFTextField){var nm=f.getName(),g=fillGuess(nm,D);rows.push({f:f,nm:nm,g:g,v:g?g.v:(f.getText()||'')})}});
+  var o=$('dfl');if(!o){o=mk('div');o.id='dfl';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
+  o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Chiudi');bar.appendChild(can);o.appendChild(bar);can.onclick=function(){o.style.display='none'};
+  var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';cd.appendChild(mk('div','k','Compila modulo'));o.appendChild(cd);o.style.display='block';
+  if(!rows.length){var w=mk('div','hint',fs.length?'Questo PDF ha dei campi, ma nessuno di testo che io possa compilare.':'Questo PDF non ha campi compilabili (è una scansione o un modulo “piatto”). Per questi serve scrivere sopra al documento: non è ancora disponibile.');w.style.margin='10px 0';cd.appendChild(w);return}
+  var hh=mk('div','hint',rows.filter(function(r){return r.g}).length+' campi su '+rows.length+' riempiti in automatico con i dati dell’Anagrafica. Controlla e correggi prima di salvare.');hh.style.margin='8px 0 4px';cd.appendChild(hh);
+  rows.forEach(function(r){var l=mk('div','k',r.nm+(r.g?' ✓':''));l.style.margin='10px 2px 4px';cd.appendChild(l);var i=document.createElement('input');i.type='text';i.value=r.v;i.style.cssText='width:100%;box-sizing:border-box;font-size:16px;padding:11px;border-radius:10px';if(r.g)i.style.borderColor='#16a34a';i.oninput=function(){r.v=i.value};cd.appendChild(i)});
+  var fl=document.createElement('label');fl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:14px;font-size:14px';var fc=document.createElement('input');fc.type='checkbox';fc.style.cssText='width:auto;margin:0';fl.appendChild(fc);fl.appendChild(document.createTextNode('Blocca i campi (il PDF non sarà più modificabile)'));cd.appendChild(fl);
+  var sv=mk('button','pri','Compila e apri');sv.style.cssText='display:block;width:100%;margin:14px 0 0';
+  sv.onclick=async function(){sv.disabled=true;sv.textContent='Compilo…';
+    try{rows.forEach(function(r){try{r.f.setText(r.v||undefined)}catch(e){}});
+      try{form.updateFieldAppearances(await doc.embedFont(PDFLib.StandardFonts.Helvetica))}catch(e){}
+      if(fc.checked)form.flatten();
+      var by=await doc.save(),nm=(file.name||'modulo.pdf').replace(/\.pdf$/i,'')+' - compilato.pdf';
+      openBlob({blob:new Blob([by],{type:'application/pdf'}),type:'application/pdf',name:nm})}
+    catch(e){status('Compilazione non riuscita: '+((e&&e.message)||e))}
+    sv.disabled=false;sv.textContent='Compila e apri'};
+  cd.appendChild(sv)}
 var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0],['fgen','Formazione generale lavoratori',1],['fspec','Formazione specifica rischio basso',1],['med','Certificato medico',1]];
 function docMeta(){if(!company.docs)company.docs={};return company.docs}
 function renderDocs(){
@@ -751,6 +781,10 @@ function renderDocs(){
     var bz=mk('button','pri','Scarica ZIP');bz.style.cssText='margin:0;width:auto';bz.onclick=docDownload;ar.appendChild(bz);
     if(window.__gconnect){var be=mk('button','','Invia per email');be.style.cssText='margin:0;width:auto';be.onclick=docMailOpen;ar.appendChild(be)}
     var bw=mk('button','wab');bw.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.8 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.200 2.200 1.300.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.900.9c.3.1.5.2.5.3.1.2.1.8-.1 1.500z"/></svg>'+'Invia su WhatsApp';bw.style.cssText='margin:0;width:auto';bw.onclick=docWaOpen;ar.appendChild(bw)}
+  var fcd=mk('div','card');fcd.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(fcd);fcd.appendChild(mk('b','','Compila un modulo'));
+  var fh=mk('div','hint','Scegli un PDF che ti hanno mandato: i campi si riempiono con i dati dell\u2019Anagrafica e delle matricole.');fh.style.margin='6px 0 10px';fcd.appendChild(fh);
+  var fb=mk('button','pri','Scegli il PDF da compilare');fb.style.cssText='margin:0;width:auto';fb.onclick=function(){var x=$('docfill');x.value='';x.click()};fcd.appendChild(fb);
+  $('docfill').onchange=function(){var f=this.files&&this.files[0];if(f)fillOpen(f)};
   var mc=mk('div','card');mc.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(mc);mc.appendChild(mk('b','','Matricole'));
   if(!company.mat)company.mat={};
   [['inps','Matricola INPS'],['inail','Matricola INAIL']].forEach(function(f){var l=mk('div','k',f[1]);l.style.margin='10px 2px 4px';mc.appendChild(l);
