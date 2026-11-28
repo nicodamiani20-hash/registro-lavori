@@ -792,8 +792,8 @@ async function itpOpen(j){status('Apro il modulo…');
   var buf;try{var rs=await fetch('itp-modello.pdf');if(!rs.ok)throw 0;buf=await rs.arrayBuffer()}catch(e){status('Modulo non trovato: controlla la connessione');return}
   var doc=await PDFLib.PDFDocument.load(buf),form=doc.getForm(),co=company||{},sv=co.itp||{},J=itpJobVals(j),rows=[];
   form.getFields().forEach(function(f){if(!(f instanceof PDFLib.PDFTextField))return;var nm=f.getName(),v;
-    if(ITPJ[nm])v=J[nm];else if(sv[nm]!==undefined)v=sv[nm];
-    else{v=f.getText()||'';if(!v){if(nm==='piva')v=co.iva||co.cf||'';else if(nm==='rea')v=co.rea||'';else if(nm==='tel')v=co.tel||'';else if(nm==='email')v=co.em||''}}
+    if(ITPJ[nm])v=J[nm];
+    else{v=f.getText()||sv[nm]||'';if(!v){if(nm==='piva')v=co.iva||co.cf||'';else if(nm==='rea')v=co.rea||'';else if(nm==='tel')v=co.tel||'';else if(nm==='email')v=co.em||''}}
     rows.push({f:f,nm:nm,v:v||''})});
   var o=$('dfl');if(!o){o=mk('div');o.id='dfl';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
   o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Chiudi');bar.appendChild(can);o.appendChild(bar);can.onclick=function(){o.style.display='none'};
