@@ -811,7 +811,7 @@ async function itpOpen(j){status('Apro il modulo…');
     catch(e){status('Compilazione non riuscita: '+((e&&e.message)||e))}
     b.disabled=false;b.textContent='Compila e apri'};
   cd.appendChild(b)}
-var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0],['fgen','Formazione generale lavoratori',1],['fspec','Formazione specifica rischio basso',1],['med','Certificato medico',1]];
+var DOCS=[['visura','Visura camerale',0],['durc','DURC',1],['polizza','Polizza assicurativa',1],['id','Carta d\u2019identit\u00e0',1],['cf','Codice fiscale della ditta',0],['pat','Patente a punti',0],['fgen','Formazione generale lavoratori',1],['fspec','Formazione specifica rischio basso',1],['med','Certificato medico',1]];
 function docMeta(){if(!company.docs)company.docs={};return company.docs}
 function renderDocs(){
   var R=$('docR');if(!R)return;R.textContent='';var cd=mk('div','card');R.appendChild(cd);
