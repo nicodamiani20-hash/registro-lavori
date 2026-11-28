@@ -1319,6 +1319,7 @@ async function imputBuild(r){
     L.forEach(function(x){g+=x.a;k+=x.k||0;km+=kmv(x);if(x.n&&names.indexOf(x.n)<0)names.push(x.n);
       if(x.s){ot+=x.s;ds.push(x.sn||'Supplemento')}
       r.ex.filter(function(e){return e.w===x.id}).forEach(function(e){if(mealRe.test(e.label))pa+=e.a;else{ot+=e.a;ds.push(e.label)}})});
+    xml=xSet(xml,'L'+rw,+(r.c&&r.c.kmr)||0.3);
     if(L.length){xml=xSet(xml,'B'+rw,names.join(' / '),1);xml=xSet(xml,'G'+rw,g);
       if(k){xml=xSet(xml,'K'+rw,k);xml=xSet(xml,'L'+rw,km/k)}
       if(pa)xml=xSet(xml,'N'+rw,pa);if(ot)xml=xSet(xml,'O'+rw,ot);if(ds.length)xml=xSet(xml,'P'+rw,ds.join(', '),1)}
