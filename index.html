@@ -314,6 +314,8 @@ body:not(.v-pc) .brand h1{font-size:min(26px,4.6vw)!important}
 #dayL input{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin:0 0 12px;padding:16px;height:58px;font-size:18px;border-radius:14px;text-align:left}
 #dayL input[type=date]{-webkit-appearance:none;appearance:none;text-align:left;line-height:1.2}
 #dayL input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+input.djm::-webkit-date-and-time-value{text-align:left;margin:0;line-height:22px;min-height:22px}
+input.djm::-webkit-datetime-edit{padding:0;line-height:22px}
 #dayL .k{margin:6px 2px 6px}
 #dayL input[type=checkbox]{width:22px!important;height:22px!important;min-width:0;padding:0!important;margin:0 6px 0 0!important;flex:none;border-radius:6px!important;display:inline-block}
 #dayL input[type=checkbox]{position:relative;vertical-align:middle}
@@ -810,7 +812,7 @@ function djobPicker(parent){
   var all=itpJobs(true),now=new Date().toISOString().slice(0,7);
   if(!DJOB.m)DJOB.m=all.some(function(j){return j.from.slice(0,7)<=now&&j.to.slice(0,7)>=now})||!all.length?now:all[0].from.slice(0,7);
   var l=mk('div','k','Mese e lavoro');l.style.margin='4px 2px 4px';parent.appendChild(l);
-  var mi=document.createElement('input');mi.type='month';mi.value=DJOB.m;mi.style.cssText='display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none;height:44px;line-height:22px;font-size:16px;padding:0 12px;border-radius:10px;margin:0 0 8px;text-align:left;text-align-last:left';parent.appendChild(mi);
+  var mi=document.createElement('input');mi.type='month';mi.className='djm';mi.value=DJOB.m;mi.style.cssText='display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;-webkit-appearance:none;appearance:none;height:44px;line-height:22px;font-size:16px;padding:10px 12px;border-radius:10px;margin:0 0 8px;text-align:left;text-align-last:left';parent.appendChild(mi);
   var se=document.createElement('select');se.style.cssText='display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;height:44px;font-size:15px;padding:0 10px;border-radius:10px;margin:0 0 10px;text-overflow:ellipsis';parent.appendChild(se);
   var fill=function(){se.textContent='';var L=all.filter(function(j){return j.from.slice(0,7)<=DJOB.m&&j.to.slice(0,7)>=DJOB.m}),o0=document.createElement('option');o0.value='';o0.textContent=L.length?'Nessun lavoro (solo i documenti)':'Nessun lavoro in questo mese';se.appendChild(o0);
     L.forEach(function(j){var cl=clients.filter(function(x){return x.id===j.c})[0]||{},o=document.createElement('option');o.value=j.id;o.textContent=(j.from===j.to?itpDm(j.from):itpDm(j.from)+' \u2192 '+itpDm(j.to))+' \u00b7 '+(cl.name||'?')+(j.n?' \u00b7 '+j.n:'');se.appendChild(o)});
