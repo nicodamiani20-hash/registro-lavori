@@ -675,11 +675,13 @@ function zipMake(files){var enc=new TextEncoder(),parts=[],cen=[],off=0,d=new Da
   return new Blob(parts.concat(cen,[e.buffer]),{type:'application/zip'})}
 function docSafe(t){return String(t).replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim()}
 function docExt(r){var t=r.type||(r.blob&&r.blob.type)||'',m=/\.([a-z0-9]{2,4})$/i.exec(r.name||'');return t==='application/pdf'?'pdf':t==='image/jpeg'?'jpg':t==='image/png'?'png':m?m[1].toLowerCase():'bin'}
-async function docCollect(){var out=[],miss=0,n=0;
+var docJobCur=null;
+async function docCollect(job){var out=[],miss=0,n=0;docJobCur=job||null;
+  if(job){try{var by=await itpBuild(job);n++;var nu=('0'+n).slice(-2);out.push({num:nu,key:'itp',label:'Autodichiarazione idoneit\u00e0 tecnico professionale',file:nu+' - Autodichiarazione ITP - '+docSafe(job.n||'lavoro')+'.pdf',blob:new Blob([by],{type:'application/pdf'}),type:'application/pdf',exp:''})}catch(e){status('Autodichiarazione non creata: '+((e&&e.message)||e))}}
   for(var i=0;i<DOCS.length;i++){var D=DOCS[i],m=docMeta()[D[0]];if(!m)continue;var r=await ATT.get('doc_'+D[0]);if(!r){miss++;continue}n++;
     var num=('0'+n).slice(-2);out.push({num:num,key:D[0],label:D[1],file:num+' - '+docSafe(D[1])+'.'+docExt(r),blob:r.blob,type:r.type||r.blob.type,exp:m.exp||''})}
   return {items:out,miss:miss}}
-function docIndex(items){var c=company||{},L=['DOCUMENTI AZIENDALI','',(c.n||'')+(c.iva?' - P. IVA '+c.iva:''),'Generato il '+new Date().toLocaleDateString('it-IT'),'','ELENCO DOCUMENTI',''];
+function docIndex(items){var c=company||{},L=['DOCUMENTI AZIENDALI','',(c.n||'')+(c.iva?' - P. IVA '+c.iva:''),'Generato il '+new Date().toLocaleDateString('it-IT'),''].concat(docJobCur?['Lavoro: '+djobDesc(docJobCur),'']:[],['ELENCO DOCUMENTI','']);
   items.forEach(function(x){L.push(x.num+'. '+x.label);L.push('    File: '+x.file);if(x.exp)L.push('    Scadenza: '+new Date(x.exp+'T12:00:00').toLocaleDateString('it-IT'));L.push('')});
   var mt=c.mat||{};if(mt.inps||mt.inail){L.push('MATRICOLE');if(mt.inps)L.push('    INPS: '+mt.inps);if(mt.inail)L.push('    INAIL: '+mt.inail)}
   return L.join('\r\n')}
@@ -688,11 +690,11 @@ async function docZip(items){var files=[],enc=new TextEncoder();
   files.unshift({name:'00 - Elenco documenti.txt',data:enc.encode(docIndex(items))});
   return zipMake(files)}
 async function docDownload(){status('Preparo la cartella ZIP…');
-  try{var g=await docCollect();if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
+  try{var g=await docCollect(djobCur());if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
     var z=await docZip(g.items);var zn='Documenti aziendali - '+docSafe((company&&company.n)||'ditta')+'.zip';if(window.__capture){var cf=window.__capture;window.__capture=null;await cf({filename:zn,data:z})}else{var shared=false;try{var zf=new File([z],zn,{type:'application/zip'});if(navigator.canShare&&navigator.canShare({files:[zf]})){await navigator.share({files:[zf],title:zn});shared=true}}catch(e){if(e&&e.name==='AbortError')return}
       if(!shared){var an=document.createElement('a');an.href=URL.createObjectURL(z);an.download=zn;document.body.appendChild(an);an.click();an.remove()}}status('ZIP pronto ('+g.items.length+' documenti)'+(g.miss?', '+g.miss+' non disponibili':''))}
   catch(e){status('ZIP non creato: '+((e&&e.message)||e))}}
-async function docWaOpen(){status('Preparo i documenti…');var g;try{g=await docCollect()}catch(e){status('Documenti non leggibili');return}
+async function docWaOpen(){status('Preparo i documenti…');var g;try{g=await docCollect(djobCur())}catch(e){status('Documenti non leggibili');return}
   if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
   var o=$('dwa');if(!o){o=mk('div');o.id='dwa';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
   o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Chiudi');bar.appendChild(can);o.appendChild(bar);
@@ -703,7 +705,7 @@ async function docWaOpen(){status('Preparo i documenti…');var g;try{g=await do
   var zl=document.createElement('label');zl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var zc=document.createElement('input');zc.type='checkbox';zc.style.cssText='width:auto;margin:0';zl.appendChild(zc);zl.appendChild(document.createTextNode('Invia tutto in un unico file ZIP'));cd.appendChild(zl);
   var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=8;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');
   var sel=function(){return g.items.filter(function(x){return ck[x.key].checked})};
-  var mg=function(){var c=company||{};ta.value=(new Date().getHours()<14?'Buongiorno':'Buonasera')+',\ntrasmetto la documentazione aziendale'+(c.n?' di '+c.n:'')+':\n\n'+sel().map(function(x){return x.num+'. '+x.label+(x.exp?' (scad. '+new Date(x.exp+'T12:00:00').toLocaleDateString('it-IT')+')':'')}).join('\n')+'\n\nCordiali saluti'+(c.t?',\n'+c.t:'')};mg();
+  var mg=function(){var c=company||{};ta.value=(new Date().getHours()<14?'Buongiorno':'Buonasera')+',\ntrasmetto la documentazione'+(docJobCur?' relativa a '+djobDesc(docJobCur):' aziendale')+(c.n?' di '+c.n:'')+':\n\n'+sel().map(function(x){return x.num+'. '+x.label+(x.exp?' (scad. '+new Date(x.exp+'T12:00:00').toLocaleDateString('it-IT')+')':'')}).join('\n')+'\n\nCordiali saluti'+(c.t?',\n'+c.t:'')};mg();
   g.items.forEach(function(x){ck[x.key].onchange=mg});cd.appendChild(l3);cd.appendChild(ta);
   var b1=mk('button','wab');b1.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="#fff" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.8 14.2c-.2.7-1.4 1.3-1.9 1.4-.5.1-1.1.1-1.8-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.4-.4.5c-.1.1-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.200 2.200 1.300.3.1.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.900.9c.3.1.5.2.5.3.1.2.1.8-.1 1.500z"/></svg>'+'Invia con i file su WhatsApp';b1.style.cssText='display:block;width:100%;margin:14px 0 0';
   var hint=mk('div','hint','Si apre il foglio di condivisione del telefono: scegli WhatsApp e la persona. Il messaggio viene copiato, incollalo se non compare da solo.');hint.style.marginTop='10px';
@@ -716,18 +718,18 @@ async function docWaOpen(){status('Preparo i documenti…');var g;try{g=await do
       status('Questo dispositivo non condivide file: ZIP scaricato, allegalo in WhatsApp');var n=waNum(ti.value);setTimeout(function(){window.open(n?'https://wa.me/'+n+'?text='+encodeURIComponent(tx):'https://wa.me/?text='+encodeURIComponent(tx),'_blank')},900)}
     catch(e){if(e&&e.name==='AbortError')return;status('Condivisione non riuscita: '+((e&&e.message)||e))}};
   cd.appendChild(b1);cd.appendChild(hint);o.appendChild(cd);o.style.display='block';can.onclick=function(){o.style.display='none'}}
-async function docMailOpen(){status('Preparo i documenti…');var g;try{g=await docCollect()}catch(e){status('Documenti non leggibili');return}
+async function docMailOpen(){status('Preparo i documenti…');var g;try{g=await docCollect(djobCur())}catch(e){status('Documenti non leggibili');return}
   if(!g.items.length){status(g.miss?'Documenti non disponibili su questo dispositivo: verifica la connessione':'Nessun documento caricato');return}
   var o=$('dcp');if(!o){o=mk('div');o.id='dcp';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
   o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Annulla'),pv=mk('button','pri','Anteprima');bar.appendChild(can);bar.appendChild(pv);o.appendChild(bar);
   var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';cd.appendChild(mk('div','k','Invia documenti aziendali'));
   var to=document.createElement('input');to.type='email';to.placeholder='email@destinatario.it';to.setAttribute('autocapitalize','off');to.value=coGet('doc_to','');cd.appendChild(mk('div','k','Destinatario'));cd.appendChild(to);
-  var l2=mk('div','k','Oggetto');l2.style.marginTop='10px';var sj=document.createElement('input');sj.value='Documenti aziendali - '+((company&&company.n)||'');cd.appendChild(l2);cd.appendChild(sj);
+  var l2=mk('div','k','Oggetto');l2.style.marginTop='10px';var sj=document.createElement('input');sj.value=(docJobCur?'Documenti - '+(docJobCur.n||'lavoro')+' - ':'Documenti aziendali - ')+((company&&company.n)||'');cd.appendChild(l2);cd.appendChild(sj);
   var l4=mk('div','k','Documenti da allegare');l4.style.marginTop='10px';cd.appendChild(l4);var ck={};
   g.items.forEach(function(x){var lb=document.createElement('label');lb.style.cssText='display:flex;gap:8px;align-items:center;margin:6px 0;font-size:15px';var c=document.createElement('input');c.type='checkbox';c.checked=true;c.style.cssText='width:auto;margin:0';ck[x.key]=c;lb.appendChild(c);lb.appendChild(document.createTextNode(x.num+'. '+x.label+' ('+Math.round(x.blob.size/1024)+' KB)'));cd.appendChild(lb)});
   var zl=document.createElement('label');zl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var zc=document.createElement('input');zc.type='checkbox';zc.style.cssText='width:auto;margin:0';zl.appendChild(zc);zl.appendChild(document.createTextNode('Allega tutto in un unico file ZIP'));cd.appendChild(zl);
   var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=6;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');
-  var mk2=function(){var sel=g.items.filter(function(x){return ck[x.key].checked});ta.value='Trasmetto in allegato la seguente documentazione aziendale:\n'+sel.map(function(x){return x.num+'. '+x.label}).join('\n')};mk2();
+  var mk2=function(){var sel=g.items.filter(function(x){return ck[x.key].checked});ta.value='Trasmetto in allegato la seguente documentazione'+(docJobCur?' relativa a '+djobDesc(docJobCur):' aziendale')+':\n'+sel.map(function(x){return x.num+'. '+x.label}).join('\n')};mk2();
   g.items.forEach(function(x){ck[x.key].onchange=mk2});cd.appendChild(l3);cd.appendChild(ta);
   var hl=document.createElement('label');hl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var hc=document.createElement('input');hc.type='checkbox';hc.checked=true;hc.style.cssText='width:auto;margin:0';hl.appendChild(hc);hl.appendChild(document.createTextNode('Includi saluto, saluti finali e intestazione'));cd.appendChild(hl);
   o.appendChild(cd);o.style.display='block';can.onclick=function(){o.style.display='none'};
@@ -779,22 +781,45 @@ async function fillOpen(file){status('Apro il modulo…');
   cd.appendChild(sv)}
 /*ITP*/var ITPL={evento_titolo:'Evento (titolo)',evento_luogo:'Luogo dell’evento',evento_data:'Data dell’evento',nome:'Nome e cognome',luogo_nascita:'Nato a',data_nascita:'Data di nascita',residenza_comune:'Residenza (comune)',residenza_via:'Residenza (via)',piva:'P.IVA / C.F.',sede_comune:'Sede (comune)',sede_via:'Sede (via)',tel:'Telefono',fax:'Fax',email:'Email',committente:'Società committente',attivita:'Attività',evento:'Evento (punto 1)',periodo_dal:'Periodo dal',periodo_al:'Periodo al',rea:'REA n°',rea_data:'REA del',massimale_cifre:'Massimale assicurazione (cifre)',massimale_lettere:'Massimale assicurazione (lettere)',luogo_data:'Luogo e data'},
   ITPJ={evento_titolo:1,evento_luogo:1,evento_data:1,committente:1,evento:1,periodo_dal:1,periodo_al:1,luogo_data:1};
-function itpJobs(){
+function itpJobs(all){
   var L=entries.filter(function(e){return e.t==='lavoro'}).sort(function(a,b){return a.d.localeCompare(b.d)}),G=[];
   L.forEach(function(e){var g=G[G.length-1],gap=g?Math.round((new Date(e.d+'T12:00:00')-new Date(g.to+'T12:00:00'))/864e5):9;
     if(g&&g.c===e.c&&(g.n||'')===(e.n||'')&&(g.loc||'')===(e.loc||'')&&gap<=1)g.to=e.d;else G.push({id:e.id,c:e.c,n:e.n||'',loc:e.loc||'',from:e.d,to:e.d})});
-  return G.reverse().slice(0,60)}
+  G.reverse();return all?G:G.slice(0,60)}
 function itpDm(d){return d.split('-').reverse().join('/')}
 function itpJobVals(j){var cl=clients.filter(function(x){return x.id===j.c})[0]||{},d=new Date(),td=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(),co=company||{};
   return {evento_titolo:j.n,evento:j.n,evento_luogo:j.loc,evento_data:j.from===j.to?itpDm(j.from):'dal '+itpDm(j.from)+' al '+itpDm(j.to),committente:cl.name||'',periodo_dal:itpDm(j.from),periodo_al:itpDm(j.to),luogo_data:(co.c||'Gottolengo')+', '+td}}
-async function itpOpen(j){status('Apro il modulo…');
-  try{if(!window.PDFLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js')}catch(e){status('Libreria PDF non raggiungibile: serve la connessione');return}
-  var buf;try{var rs=await fetch('itp-modello.pdf');if(!rs.ok)throw 0;buf=await rs.arrayBuffer()}catch(e){status('Modulo non trovato: controlla la connessione');return}
-  var doc=await PDFLib.PDFDocument.load(buf),form=doc.getForm(),co=company||{},sv=co.itp||{},J=itpJobVals(j),rows=[];
+function itpRows(form,j){var co=company||{},sv=co.itp||{},J=itpJobVals(j),rows=[];
   form.getFields().forEach(function(f){if(!(f instanceof PDFLib.PDFTextField))return;var nm=f.getName(),v;
     if(ITPJ[nm])v=J[nm];
     else{v=f.getText()||sv[nm]||'';if(!v){if(nm==='piva')v=co.iva||co.cf||'';else if(nm==='rea')v=co.rea||'';else if(nm==='tel')v=co.tel||'';else if(nm==='email')v=co.em||''}}
     rows.push({f:f,nm:nm,v:v||''})});
+  return rows}
+async function itpBuild(j){
+  if(!window.PDFLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js');
+  var rs=await fetch('itp-modello.pdf');if(!rs.ok)throw new Error('modulo ITP non trovato');
+  var doc=await PDFLib.PDFDocument.load(await rs.arrayBuffer()),form=doc.getForm();
+  itpRows(form,j).forEach(function(r){try{r.f.setText(r.v||undefined)}catch(e){}});
+  try{form.updateFieldAppearances(await doc.embedFont(PDFLib.StandardFonts.Helvetica))}catch(e){}
+  return await doc.save()}
+var DJOB={m:'',id:null};
+function djobCur(){if(!DJOB.id)return null;return itpJobs(true).filter(function(j){return j.id===DJOB.id})[0]||null}
+function djobDesc(j){var cl=clients.filter(function(x){return x.id===j.c})[0]||{};
+  return (j.n?'\u00ab'+j.n+'\u00bb':'il lavoro')+(j.loc?' a '+j.loc:'')+' ('+(j.from===j.to?'il '+itpDm(j.from):'dal '+itpDm(j.from)+' al '+itpDm(j.to))+')'+(cl.name?' per '+cl.name:'')}
+function djobPicker(parent){
+  var all=itpJobs(true),now=new Date().toISOString().slice(0,7);
+  if(!DJOB.m)DJOB.m=all.some(function(j){return j.from.slice(0,7)<=now&&j.to.slice(0,7)>=now})||!all.length?now:all[0].from.slice(0,7);
+  var l=mk('div','k','Mese e lavoro');l.style.margin='4px 2px 4px';parent.appendChild(l);
+  var mi=document.createElement('input');mi.type='month';mi.value=DJOB.m;mi.style.cssText='width:100%;box-sizing:border-box;font-size:16px;padding:11px;border-radius:10px;margin-bottom:8px';parent.appendChild(mi);
+  var se=document.createElement('select');se.style.cssText='width:100%;box-sizing:border-box;font-size:16px;padding:11px;border-radius:10px;margin-bottom:10px';parent.appendChild(se);
+  var fill=function(){se.textContent='';var L=all.filter(function(j){return j.from.slice(0,7)<=DJOB.m&&j.to.slice(0,7)>=DJOB.m}),o0=document.createElement('option');o0.value='';o0.textContent=L.length?'Nessun lavoro (solo i documenti)':'Nessun lavoro in questo mese';se.appendChild(o0);
+    L.forEach(function(j){var cl=clients.filter(function(x){return x.id===j.c})[0]||{},o=document.createElement('option');o.value=j.id;o.textContent=(j.from===j.to?itpDm(j.from):itpDm(j.from)+' \u2192 '+itpDm(j.to))+' \u00b7 '+(cl.name||'?')+(j.n?' \u00b7 '+j.n:'');se.appendChild(o)});
+    if(!L.some(function(j){return j.id===DJOB.id}))DJOB.id=L.length?L[0].id:null;se.value=DJOB.id||''};
+  mi.onchange=function(){if(mi.value){DJOB.m=mi.value;DJOB.id=null;fill()}};se.onchange=function(){DJOB.id=se.value||null};fill()}
+async function itpOpen(j){status('Apro il modulo…');
+  try{if(!window.PDFLib)await loadScr('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js')}catch(e){status('Libreria PDF non raggiungibile: serve la connessione');return}
+  var buf;try{var rs=await fetch('itp-modello.pdf');if(!rs.ok)throw 0;buf=await rs.arrayBuffer()}catch(e){status('Modulo non trovato: controlla la connessione');return}
+  var doc=await PDFLib.PDFDocument.load(buf),form=doc.getForm(),co=company||{},rows=itpRows(form,j);
   var o=$('dfl');if(!o){o=mk('div');o.id='dfl';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
   o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Chiudi');bar.appendChild(can);o.appendChild(bar);can.onclick=function(){o.style.display='none'};
   var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';cd.appendChild(mk('div','k','Autodichiarazione ITP'));o.appendChild(cd);o.style.display='block';
@@ -818,8 +843,8 @@ function renderDocs(){
   if(!coGate(R,cd,16,renderDocs))return;
   cd.appendChild(mk('div','k','Documenti'));
   var h=mk('div','hint','Carica una foto o un PDF (max 4 MB). Sono visibili solo dopo la password o Face ID e si sincronizzano con gli altri dispositivi.');h.style.margin='6px 0 4px';cd.appendChild(h);
-  if(Object.keys(docMeta()).length){var ac=mk('div','card');ac.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(ac);ac.appendChild(mk('b','','Tutti i documenti'));
-    var ah=mk('div','hint','Cartella ZIP con i file numerati e un elenco con descrizione e scadenze, oppure invio diretto per email (con l\u2019intestazione della ditta) o su WhatsApp.');ah.style.margin='6px 0 10px';ac.appendChild(ah);
+  if(Object.keys(docMeta()).length||itpJobs().length){var ac=mk('div','card');ac.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(ac);ac.appendChild(mk('b','','Tutti i documenti'));
+    var ah=mk('div','hint','Scegli mese e lavoro: l\u2019autodichiarazione compilata diventa il primo documento e il messaggio richiama il lavoro. Cartella ZIP con i file numerati e un elenco con descrizione e scadenze, oppure invio diretto per email (con l\u2019intestazione della ditta) o su WhatsApp.');ah.style.margin='6px 0 10px';ac.appendChild(ah);djobPicker(ac);
     var ar=mk('div');ar.style.cssText='display:flex;gap:8px;flex-wrap:wrap';ac.appendChild(ar);
     var bz=mk('button','pri','Scarica ZIP');bz.style.cssText='margin:0;width:auto';bz.onclick=docDownload;ar.appendChild(bz);
     if(window.__gconnect){var be=mk('button','','Invia per email');be.style.cssText='margin:0;width:auto';be.onclick=docMailOpen;ar.appendChild(be)}
@@ -829,11 +854,8 @@ function renderDocs(){
   var fb=mk('button','pri','Scegli il PDF da compilare');fb.style.cssText='margin:0;width:auto';fb.onclick=function(){var x=$('docfill');x.value='';x.click()};fcd.appendChild(fb);
   var icd=mk('div','card');icd.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(icd);icd.appendChild(mk('b','','Autodichiarazione ITP (lavoratore autonomo)'));
   var ih=mk('div','hint','Scegli il lavoro: evento, luogo, date e società committente si compilano da soli.');ih.style.margin='6px 0 10px';icd.appendChild(ih);
-  var JL=itpJobs();
-  if(!JL.length){icd.appendChild(mk('div','hint','Nessun lavoro registrato.'))}else{
-    var isel=document.createElement('select');isel.style.cssText='width:100%;box-sizing:border-box;font-size:16px;padding:11px;border-radius:10px;margin-bottom:10px';
-    JL.forEach(function(j,ix){var cl=clients.filter(function(x){return x.id===j.c})[0]||{},o=document.createElement('option');o.value=ix;o.textContent=(j.from===j.to?itpDm(j.from):itpDm(j.from)+' → '+itpDm(j.to))+' · '+(cl.name||'?')+(j.n?' · '+j.n:'');isel.appendChild(o)});
-    icd.appendChild(isel);var ib=mk('button','pri','Compila per questo lavoro');ib.style.cssText='margin:0;width:auto';ib.onclick=function(){itpOpen(JL[+isel.value])};icd.appendChild(ib)}
+  djobPicker(icd);var ib=mk('button','pri','Compila per questo lavoro');ib.style.cssText='margin:0;width:auto';ib.onclick=function(){var j=djobCur();if(!j){status('Scegli un lavoro');return}itpOpen(j)};icd.appendChild(ib);
+
   $('docfill').onchange=function(){var f=this.files&&this.files[0];if(f)fillOpen(f)};
   var mc=mk('div','card');mc.style.cssText='margin:12px 0 0;padding:14px';R.appendChild(mc);mc.appendChild(mk('b','','Matricole'));
   if(!company.mat)company.mat={};
