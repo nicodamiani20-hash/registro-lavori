@@ -1297,7 +1297,7 @@ function renderRecap(){
   $('rtot').textContent='Totale da fatturare: '+eur.format(b+s+k+xt);
 }
 /*IMPUT*/function isImput(c){return !!c&&(c.model==='imput'||/imput/i.test(c.name||''))}
-function mimeOf(fn){return /\.pdf$/i.test(fn)?'application/pdf':/\.xlsx$/i.test(fn)?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':/\.zip$/i.test(fn)?'application/zip':/\.json$/i.test(fn)?'application/json':'application/octet-stream'}
+function mimeOf(fn){return /\.pdf$/i.test(fn)?'application/pdf':/\.xlsx$/i.test(fn)?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':/\.zip$/i.test(fn)?'application/zip':/\.jpe?g$/i.test(fn)?'image/jpeg':/\.png$/i.test(fn)?'image/png':/\.json$/i.test(fn)?'application/json':'application/octet-stream'}
 function xEsc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function xSet(xml,ref,val,str){var m=new RegExp('<c r="'+ref+'"([^>]*?)(/>|>(?:(?!</c>)[\\s\\S])*</c>)').exec(xml);if(!m)return xml;var sm=/ s="(\d+)"/.exec(m[1]),st=sm?' s="'+sm[1]+'"':'';
   return xml.replace(m[0],str?'<c r="'+ref+'"'+st+' t="inlineStr"><is><t xml:space="preserve">'+xEsc(val)+'</t></is></c>':'<c r="'+ref+'"'+st+'><v>'+val+'</v></c>')}
@@ -1394,21 +1394,36 @@ async function waRen(){
     var got=null;window.__capture=function(o){got=o};
     try{await $('rpdf').onclick()}catch(e){}window.__capture=null;
     if(!got){status('PDF non creato');return}
+    var fl=isImput(r.c)?await renAtts(r):[];text=text+'\n\n'+attDesc(r,got,fl);
     var blob=got.data instanceof Blob?got.data:new Blob([got.data],{type:mimeOf(got.filename)}),file=new File([blob],got.filename,{type:mimeOf(got.filename)});
-    if(canF){try{await navigator.share({files:[file],text:text});return}catch(e){if(e&&e.name==='AbortError')return}}
+    if(canF){try{var sf=[file].concat(fl.map(function(f){return new File([f.data],f.filename,{type:mimeOf(f.filename)})}));if(navigator.canShare&&!navigator.canShare({files:sf}))sf=[file];await navigator.share({files:sf,text:text});return}catch(e){if(e&&e.name==='AbortError')return}}
     var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=got.filename;document.body.appendChild(a);a.click();a.remove();
     status('File scaricato: allegalo nella chat WhatsApp');waOpen(r.c,text)};
   status('Preparo il file\u2026');await withPdf()}
 function ab64(ab){var u=new Uint8Array(ab),bs='',CH=32768;for(var q=0;q<u.length;q+=CH)bs+=String.fromCharCode.apply(null,u.subarray(q,q+CH));return btoa(bs)}
+async function renAtts(r){
+  var out=[],n=0;
+  for(var i=0;i<r.ex.length;i++){var e=r.ex[i];if(!e.att)continue;var rec=null;try{rec=await ATT.get(e.id)}catch(_){}
+    if(!rec||!rec.blob)continue;n++;var ty=rec.type||rec.blob.type||'',ext=/pdf/i.test(ty)?'pdf':/png/i.test(ty)?'png':'jpg';
+    var nm='Giustificativo '+n+' - '+String(e.label).replace(/[\\\/:*?"<>|]+/g,' ').trim()+' - '+e.d+'.'+ext;
+    out.push({filename:nm,data:await rec.blob.arrayBuffer(),label:e.label,a:e.a,d:e.d})}
+  return out}
+function attDesc(r,got,files){
+  var tit=rtitle().replace(/^Rendiconto\s*(mensile)?\s*-?\s*/i,''),tot=($('rtot').textContent||'').replace('Totale da fatturare: ',''),imp=/\.xlsx$/i.test(got.filename);
+  var L=['Allegati:','- '+(imp?'Rendiconto mensile in Excel':'Rendiconto mensile in PDF')+(tit?' ('+tit+')':'')+': elenco dei lavori svolti con i relativi importi'+(tot?', totale '+tot:'')+(imp?'':(r.ex.some(function(e){return e.att})?', con i giustificativi di spesa in coda':''))+'.'];
+  if(files.length){L.push('- Giustificativi delle spese ('+files.length+'):');files.forEach(function(f){L.push('   \u2022 '+f.label+' del '+f.d.split('-').reverse().join('/')+': '+eur.format(f.a))})}
+  return L.join('\n')}
 async function sendRen(){
   var r=rrows();if(!r.c){status('Scegli un cliente');return}
   var got=null;window.__capture=function(o){got=o};
   try{await $('rpdf').onclick()}catch(e){}
   window.__capture=null;
   if(!got)return;
-  rcompose(r.c,got,rtitle());
+  var fl=isImput(r.c)?await renAtts(r):[];
+  rcompose(r.c,got,rtitle(),{files:fl,desc:attDesc(r,got,fl)});
 }
-function rcompose(c,pdf,tit){
+function rcompose(c,pdf,tit,more){
+  more=more||{files:[],desc:''};
   var o=$('rcp');if(!o){o=mk('div');o.id='rcp';o.style.cssText='position:fixed;inset:0;z-index:45;background:var(--bg);overflow:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 14px';document.body.appendChild(o)}
   o.textContent='';var bar=mk('div','pvbar'),can=mk('button','','Annulla'),pv=mk('button','pri','Anteprima');bar.appendChild(can);bar.appendChild(pv);o.appendChild(bar);
   var cd=mk('div','card');cd.style.cssText='max-width:640px;margin:0 auto';
@@ -1416,9 +1431,9 @@ function rcompose(c,pdf,tit){
   var l0=mk('div','k','Invia a '+c.name);l0.style.cssText='font-weight:700;margin-bottom:12px';l1.style.marginTop='4px';cd.appendChild(l0);cd.appendChild(l1);cd.appendChild(to);
   if(!c.email)cd.appendChild(mk('div','hint','Manca l’email del cliente: scrivila qui, verrà salvata nella scheda Clienti.'));
   var l2=mk('div','k','Oggetto');l2.style.marginTop='10px';var sj=document.createElement('input');sj.value=tit;cd.appendChild(l2);cd.appendChild(sj);
-  var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=5;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');ta.value='Trasmetto in allegato il rendiconto dei lavori svolti ('+tit.replace(/^Rendiconto mensile\s*-\s*/i,'').replace(/^Rendiconto\s+/i,'')+').';cd.appendChild(l3);cd.appendChild(ta);
+  var l3=mk('div','k','Messaggio');l3.style.marginTop='10px';var ta=document.createElement('textarea');ta.rows=5;ta.style.cssText='width:100%;box-sizing:border-box';ta.setAttribute('spellcheck','true');ta.value='Trasmetto in allegato il rendiconto dei lavori svolti ('+tit.replace(/^Rendiconto mensile\s*-\s*/i,'').replace(/^Rendiconto\s+/i,'')+').'+(more.desc?'\n\n'+more.desc:'');ta.rows=more.desc?9:5;cd.appendChild(l3);cd.appendChild(ta);
   var hl=document.createElement('label');hl.style.cssText='display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px';var hc=document.createElement('input');hc.type='checkbox';hc.checked=true;hc.style.cssText='width:auto;margin:0';hl.appendChild(hc);hl.appendChild(document.createTextNode('Includi saluto, saluti finali e intestazione'));cd.appendChild(hl);
-  cd.appendChild(mk('div','hint','Allegato: '+pdf.filename));
+  cd.appendChild(mk('div','hint','Allegati: '+[pdf.filename].concat(more.files.map(function(f){return f.filename})).join(' \u00b7 ')));
   o.appendChild(cd);o.style.display='block';
   can.onclick=function(){o.style.display='none'};
   pv.onclick=function(){
@@ -1429,12 +1444,12 @@ function rcompose(c,pdf,tit){
       bt.disabled=true;bt.textContent='Invio…';
       try{
         await window.__gconnect();var mc=await claude.use('mcp');
-        await mc.callTool('Gmail','send_reply',{to:a,subject:sb,body:pk.plain,html:pk.html,files:[{name:pdf.filename,type:mimeOf(pdf.filename),b64:ab64(pdf.data)}]});
+        await mc.callTool('Gmail','send_reply',{to:a,subject:sb,body:pk.plain,html:pk.html,files:[{name:pdf.filename,type:mimeOf(pdf.filename),b64:ab64(pdf.data)}].concat(more.files.map(function(f){return {name:f.filename,type:mimeOf(f.filename),b64:ab64(f.data)}}))});
         if(!c.email||c.email.toLowerCase()!==a.toLowerCase()){c.email=a;save()}
         ok();o.style.display='none';status('Email inviata a '+a);renderRecap();
       }catch(e){var cc=e&&e.code;status(cc==='needs_reauth'?'Serve il permesso di inviare: collega Gmail dalla scheda Email':'Email non inviata ('+(cc||'errore')+')')}
       bt.disabled=false;bt.textContent='Invia';
-    },[{name:pdf.filename,size:pdf.data.byteLength,data:pdf.data}]);
+    },[{name:pdf.filename,size:pdf.data.byteLength,data:pdf.data}].concat(more.files.map(function(f){return {name:f.filename,size:f.data.byteLength}})));
   };
 }
 $('rsend').onclick=function(){if(!window.__gconnect){status('Disponibile solo nell’app su GitHub');return}sendRen()};
